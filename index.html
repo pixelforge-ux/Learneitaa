@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>آموزش زبان برتر</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;400;700&display=swap');
+        
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            margin: 0;
+            user-select: none;
+            overflow: hidden;
+            transition: background 0.5s ease, color 0.5s ease;
+        }
+
+        body.dark {
+            background: radial-gradient(circle at top right, #1a1a2e, #16213e);
+            color: white;
+        }
+
+        body.light {
+            background: radial-gradient(circle at top right, #f0f2f5, #e0e5ec);
+            color: #1a1a2e;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.light .glass {
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-hover:active {
+            transform: scale(0.95);
+        }
+
+        #game-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            padding-bottom: 100px;
+        }
+
+        #splash-screen {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center, #1a1a2e, #0f0f1a);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-bar-container {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .loading-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            box-shadow: 0 0 10px #00d2ff;
+        }
+
+        .word-chip {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .word-chip:active {
+            transform: translateY(4px);
+        }
+
+        .glass-btn {
+            cursor: pointer;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .glass-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Custom scrollbar for game menus if needed */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="splash-screen">
+        <h1 class="text-6xl font-bold mb-4 gradient-text animate__animated animate__pulse animate__infinite">لرنیتا</h1>
+        <div class="loading-bar-container">
+            <div id="loading-bar" class="loading-bar"></div>
+        </div>
+        <p class="mt-8 text-sm text-gray-400 opacity-80">کاری از سید آروین موسوی</p>
+    </div>
+
+    <div id="game-container" class="p-4 relative min-h-screen flex flex-col dark">
+        <!-- Main Menu -->
+        <div id="main-menu" class="h-full flex flex-col justify-center items-center space-y-6 hidden">
+            <div class="flex justify-between items-center w-full max-w-md mb-4 px-4">
+                <h1 class="text-4xl font-bold animate__animated animate__fadeInDown gradient-text">لرنیتا</h1>
+                <div class="flex gap-2">
+                    <button onclick="window.app.showMedals()" class="glass p-2 rounded-full w-10 h-10 flex items-center justify-center text-xl">🏅</button>
+                    <button onclick="window.app.toggleTheme()" class="glass p-2 rounded-full w-10 h-10 flex items-center justify-center text-xl">🌓</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 w-full max-w-md px-2" id="game-menu-grid">
+                <div data-game="guess" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_guess.png" class="w-20 h-20 mb-2" alt="Guess Word">
+                    <span class="font-bold text-sm">حدس کلمه</span>
+                </div>
+                <div data-game="translate" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.1s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_translate.png" class="w-20 h-20 mb-2" alt="Fast Translate">
+                    <span class="font-bold text-sm">ترجمه سریع</span>
+                </div>
+                <div data-game="sentence" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.2s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_sentence.png" class="w-20 h-20 mb-2" alt="Sentence Builder">
+                    <span class="font-bold text-sm">جمله‌سازی</span>
+                </div>
+                <div data-game="grammar" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.3s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_grammar.png" class="w-20 h-20 mb-2" alt="Grammar Check">
+                    <span class="font-bold text-sm">ساختار دستوری</span>
+                </div>
+                <div data-game="hangman" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.4s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_hangman.png" class="w-20 h-20 mb-2" alt="Hangman">
+                    <span class="font-bold text-sm">Hangman</span>
+                </div>
+                <div data-game="numToWord" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.5s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_number.png" class="w-20 h-20 mb-2" alt="Numbers">
+                    <span class="font-bold text-sm">عدد به حروف</span>
+                </div>
+                <div data-game="wordToNum" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.6s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_number.png" class="w-20 h-20 mb-2" alt="Numbers" style="filter: saturate(2);">
+                    <span class="font-bold text-sm">حروف به عدد</span>
+                </div>
+                <div data-game="colors" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.7s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_color.png" class="w-20 h-20 mb-2" alt="Colors">
+                    <span class="font-bold text-sm">حدس رنگ‌ها</span>
+                </div>
+                <div data-game="animal" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.8s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_animal.png" class="w-20 h-20 mb-2" alt="Animals">
+                    <span class="font-bold text-sm">حدس حیوان</span>
+                </div>
+                <div data-game="jobs" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.9s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_job.png" class="w-20 h-20 mb-2" alt="Jobs">
+                    <span class="font-bold text-sm">مشاغل</span>
+                </div>
+                <div data-game="days" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.0s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_calendar.png" class="w-20 h-20 mb-2" alt="Days">
+                    <span class="font-bold text-sm">روزهای هفته</span>
+                </div>
+                <div data-game="months" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.1s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_calendar.png" class="w-20 h-20 mb-2" alt="Months" style="filter: hue-rotate(45deg);">
+                    <span class="font-bold text-sm">ماه‌های سال</span>
+                </div>
+                <div data-game="family" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.2s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_family.png" class="w-20 h-20 mb-2" alt="Family">
+                    <span class="font-bold text-sm">اعضای خانواده</span>
+                </div>
+                <div data-game="places" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.3s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_places.png" class="w-20 h-20 mb-2" alt="Places">
+                    <span class="font-bold text-sm">مکان‌ها</span>
+                </div>
+                <div data-game="objects" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.4s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_objects.png" class="w-20 h-20 mb-2" alt="Objects">
+                    <span class="font-bold text-sm">اشیاء</span>
+                </div>
+                <div data-game="clothes" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.5s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_clothes.png" class="w-20 h-20 mb-2" alt="Clothes">
+                    <span class="font-bold text-sm">لباس‌ها</span>
+                </div>
+                <div data-game="adjectives" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.6s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_adjectives.png" class="w-20 h-20 mb-2" alt="Adjectives">
+                    <span class="font-bold text-sm">صفت‌ها</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Screens (Hidden by default) -->
+        <div id="game-screen" class="hidden h-full flex flex-col pt-12 pb-20">
+            <!-- Header -->
+            <div class="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
+                <button onclick="window.app.showMenu()" class="glass px-4 py-2 rounded-full text-xs">بازگشت</button>
+                <div id="game-stats" class="flex gap-4">
+                    <div class="glass px-4 py-2 rounded-full text-xs">امتیاز: <span id="score">۰</span></div>
+                    <div id="timer-box" class="glass px-4 py-2 rounded-full text-xs hidden">زمان: <span id="timer">۳۰</span></div>
+                </div>
+            </div>
+
+            <div id="game-content" class="flex-grow flex flex-col items-center justify-center">
+                <!-- Content injected here -->
+            </div>
+        </div>
+
+        <!-- Feedback Overlay -->
+        <div id="feedback" class="fixed inset-0 pointer-events-none flex items-center justify-center z-50 transition-opacity duration-300 opacity-0">
+            <div id="feedback-icon" class="text-8xl"></div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div id="modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+            <div id="modal-content" class="glass p-8 rounded-3xl max-w-sm w-full text-center">
+                <h3 id="modal-title" class="text-2xl font-bold mb-4">آیا مطمئن هستید؟</h3>
+                <p id="modal-desc" class="mb-8 opacity-80">این مینی‌گیم قبلا کامل شده است. آیا می‌خواهید دوباره از مرحله ۱ شروع کنید؟</p>
+                <div class="flex gap-4">
+                    <button onclick="window.app.confirmReset()" class="flex-1 bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold">بله، شروع مجدد</button>
+                    <button onclick="window.app.closeModal()" class="flex-1 glass py-3 rounded-xl font-bold">انصراف</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medals Gallery -->
+        <div id="medals-screen" class="fixed inset-0 glass z-[90] hidden flex flex-col p-6 overflow-y-auto">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold gradient-text">مدال‌های من</h2>
+                <button onclick="window.app.hideMedals()" class="glass px-4 py-2 rounded-full">بازگشت</button>
+            </div>
+            <div id="medals-grid" class="grid grid-cols-2 gap-4">
+                <!-- Medals injected here -->
+            </div>
+        </div>
+
+        <!-- Global Footer -->
+        <div class="fixed bottom-0 left-0 right-0 p-4 text-center z-40 bg-white/5 backdrop-blur-md border-t border-white/10">
+            <p class="text-xs text-gray-400 font-bold" dir="rtl">ثبت تبلیغات @Arvinweb</p>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "gsap": "https://esm.sh/gsap",
+            "canvas-confetti": "https://esm.sh/canvas-confetti"
+        }
+    }
+    </script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
