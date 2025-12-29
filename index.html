@@ -20,11 +20,6 @@
 
         if (Eitaa.WebApp.disableVerticalSwipes)
           Eitaa.WebApp.disableVerticalSwipes();
-
-        const enterFullscreen = async () => {
-          try {
-            if (!Eitaa.WebApp.isFullscreen && Eitaa.WebApp.requestFullscreen) {
-              await Eitaa.WebApp.requestFullscreen();
             }
           } catch (e) {}
         };
