@@ -768,7 +768,7 @@ class App {
                     ${this.grammarStep === 2 ? `
                     <div class="grid grid-cols-2 gap-4 w-full max-w-xs animate__animated animate__bounceIn" dir="ltr">
                         ${this.shuffleArray([...data.options]).map(opt => `
-                            <button onclick="window.app.checkGrammarCorrection('${opt}')" class="glass py-4 rounded-2xl text-lg font-bold btn-hover">
+                            <button onclick="window.app.checkGrammarCorrection('${opt.replace(/'/g, "\\'")}')" class="glass py-4 rounded-2xl text-lg font-bold btn-hover">
                                 ${opt}
                             </button>
                         `).join('')}
