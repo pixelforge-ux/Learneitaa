@@ -3,7 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>آموزش زبان لرنیتا</title>
+    <title>آموزش زبان برتر</title>
+    <script src="https://developer.eitaa.com/eitaa-web-app.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      try {
+        if (!(window.Eitaa && Eitaa.WebApp)) return;
+
+        Eitaa.WebApp.ready();
+
+        if (Eitaa.WebApp.setHeaderColor)
+          Eitaa.WebApp.setHeaderColor('#1a1a2e');
+
+        if (Eitaa.WebApp.enableClosingConfirmation)
+          Eitaa.WebApp.enableClosingConfirmation();
+
+        if (Eitaa.WebApp.disableVerticalSwipes)
+          Eitaa.WebApp.disableVerticalSwipes();
+
+        const enterFullscreen = async () => {
+          try {
+            if (!Eitaa.WebApp.isFullscreen && Eitaa.WebApp.requestFullscreen) {
+              await Eitaa.WebApp.requestFullscreen();
+            }
+          } catch (e) {}
+        };
+        document.addEventListener('click', enterFullscreen, { once: true });
+      } catch (e) {}
+    });
+    </script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="apple-touch-icon" href="game_guess.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
     <style>
@@ -274,7 +305,9 @@
 
         <!-- Global Footer -->
         <div class="fixed bottom-0 left-0 right-0 p-4 text-center z-40 bg-white/5 backdrop-blur-md border-t border-white/10">
-            <p class="text-xs text-gray-400 font-bold" dir="rtl">ثبت تبلیغات @Arvinweb</p>
+            <button id="arvin-link" aria-label="Arvinweb" onclick="window.app.openArvin()" class="text-xs text-blue-400 font-bold underline" dir="rtl" style="background:none;border:none;padding:0;display:inline-block;cursor:pointer;">
+                ثبت تبلیغات @Arvinweb
+            </button>
         </div>
     </div>
 

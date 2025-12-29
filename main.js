@@ -40,6 +40,15 @@ class App {
 
         this.init();
         this.setupEventListeners();
+        this.registerServiceWorker();
+    }
+
+    registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg failed', err));
+            });
+        }
     }
 
     setupEventListeners() {
@@ -60,11 +69,27 @@ class App {
                 }
             });
         }
+
+        // Standard Browser Back Button Handling
+        window.addEventListener('popstate', (event) => {
+            const gameScreen = document.getElementById('game-screen');
+            const medalScreen = document.getElementById('medals-screen');
+            const modal = document.getElementById('modal-overlay');
+
+            if (modal && !modal.classList.contains('hidden')) {
+                this.closeModal();
+            } else if (medalScreen && !medalScreen.classList.contains('hidden')) {
+                this.hideMedals();
+            } else if (gameScreen && !gameScreen.classList.contains('hidden')) {
+                this.showMenu(true); // true means don't trigger history.back()
+            }
+        });
     }
 
     async init() {
         document.body.classList.add('dark');
         this.updateMenuUI();
+        this.initEitaaBackButton();
         
         // Safety fallback for splash screen
         this.splashTimeout = setTimeout(() => this.finishSplash(), 4000);
@@ -150,8 +175,16 @@ class App {
         this.synth.speak(utterance);
     }
 
-    showMenu() {
+    showMenu(fromPopState = false) {
         this.stopTimer();
+        this.updateEitaaBackButton(false);
+        
+        // If we are showing menu manually (not via physical back button), 
+        // and we were in a sub-view, clear history state
+        if (!fromPopState && history.state === 'subview') {
+            history.back();
+        }
+
         gsap.to('#game-screen', { opacity: 0, duration: 0.3, onComplete: () => {
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
@@ -178,9 +211,13 @@ class App {
         this.currentLevel = level;
         document.getElementById('score').innerText = '۰';
         
+        // Push state to handle back button
+        history.pushState('subview', '');
+
         document.getElementById('main-menu').classList.add('hidden');
         const screen = document.getElementById('game-screen');
         screen.classList.remove('hidden');
+        this.updateEitaaBackButton(true);
         gsap.fromTo(screen, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 });
 
         this.renderLevel();
@@ -213,12 +250,24 @@ class App {
     }
 
     loadProgress() {
-        const data = localStorage.getItem('learnita_v2_progress');
-        return data ? JSON.parse(data) : {};
+        const saved = localStorage.getItem('learnita_v3_progress');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error("Failed to parse progress", e);
+            }
+        }
+        
+        const initialProgress = {};
+        Object.keys(GAME_TYPES).forEach(k => {
+            initialProgress[GAME_TYPES[k]] = { level: 0, medals: 0, completed: false };
+        });
+        return initialProgress;
     }
 
     saveProgress() {
-        localStorage.setItem('learnita_v2_progress', JSON.stringify(this.progress));
+        localStorage.setItem('learnita_v3_progress', JSON.stringify(this.progress));
     }
 
     updateMenuUI() {
@@ -245,6 +294,8 @@ class App {
 
     showMedals() {
         this.playSound('click');
+        this.updateEitaaBackButton(true);
+        history.pushState('subview', '');
         const screen = document.getElementById('medals-screen');
         const grid = document.getElementById('medals-grid');
         grid.innerHTML = '';
@@ -275,9 +326,65 @@ class App {
         gsap.fromTo(screen, { y: '100%' }, { y: 0, duration: 0.4, ease: 'power2.out' });
     }
 
-    hideMedals() {
+    hideMedals(fromPopState = false) {
+        this.updateEitaaBackButton(false);
+        if (!fromPopState && history.state === 'subview') {
+            history.back();
+        }
         const screen = document.getElementById('medals-screen');
         gsap.to(screen, { y: '100%', duration: 0.3, onComplete: () => screen.classList.add('hidden') });
+    }
+
+    initEitaaBackButton() {
+        try {
+            if (window.Eitaa && Eitaa.WebApp && Eitaa.WebApp.BackButton) {
+                Eitaa.WebApp.BackButton.onClick(() => {
+                    const gameScreen = document.getElementById('game-screen');
+                    const medalScreen = document.getElementById('medals-screen');
+                    
+                    if (!medalScreen.classList.contains('hidden')) {
+                        this.hideMedals();
+                    } else if (!gameScreen.classList.contains('hidden')) {
+                        this.showMenu();
+                    }
+                });
+            }
+        } catch (e) {}
+    }
+
+    openArvin() {
+        const url = 'https://eitaa.com/Arvinweb';
+        // Prefer SDK method if available (per developer.eitaa.com JS SDK)
+        try {
+            if (window.Eitaa && Eitaa.WebApp) {
+                // Different SDK builds might expose different helpers; try common names
+                if (typeof Eitaa.WebApp.openLink === 'function') {
+                    Eitaa.WebApp.openLink(url);
+                    return;
+                }
+                if (typeof Eitaa.WebApp.openUrl === 'function') {
+                    Eitaa.WebApp.openUrl(url);
+                    return;
+                }
+                if (typeof Eitaa.WebApp.open === 'function') {
+                    Eitaa.WebApp.open(url);
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Eitaa open link failed', e);
+        }
+        // Fallback to standard navigation
+        window.open(url, '_blank');
+    }
+
+    updateEitaaBackButton(show) {
+        try {
+            if (window.Eitaa && Eitaa.WebApp && Eitaa.WebApp.BackButton) {
+                if (show) Eitaa.WebApp.BackButton.show();
+                else Eitaa.WebApp.BackButton.hide();
+            }
+        } catch (e) {}
     }
 
     renderLevel() {

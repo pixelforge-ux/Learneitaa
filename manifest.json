@@ -1,0 +1,18 @@
+{
+  "name": "لرنیتا - آموزش زبان برتر",
+  "short_name": "لرنیتا",
+  "description": "یک برنامه تعاملی برای یادگیری لغات و گرامر زبان انگلیسی",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "game_guess.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
