@@ -168,8 +168,16 @@ class App {
         }
         this.synth.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Find local voice for language
+        const voices = this.synth.getVoices();
+        const voice = voices.find(v => v.lang.startsWith(lang.split('-')[0])) || voices[0];
+        if (voice) utterance.voice = voice;
+        
         utterance.lang = lang;
-        utterance.rate = 0.9;
+        utterance.rate = 0.85; // Slightly slower for clarity
+        utterance.pitch = 1.0;
+        
         if (onEndCallback) {
             utterance.onend = () => onEndCallback();
             utterance.onerror = () => onEndCallback();
@@ -281,6 +289,11 @@ class App {
                 const prog = this.progress[type] || { level: 0, medals: 0, completed: false };
                 
                 let html = '';
+                // Keep the "NEW" badge for adjectives and verbs if they haven't been completed much
+                if ((type === GAME_TYPES.ADJECTIVES || type === GAME_TYPES.VERBS) && !prog.completed && prog.level < 5) {
+                    html += `<div class="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">جدید</div>`;
+                }
+
                 if (prog.medals > 0) {
                     html += `<div class="bg-yellow-500/80 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">🏅 ${prog.medals}</div>`;
                 }
