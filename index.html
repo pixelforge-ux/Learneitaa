@@ -20,6 +20,11 @@
 
         if (Eitaa.WebApp.disableVerticalSwipes)
           Eitaa.WebApp.disableVerticalSwipes();
+
+        const enterFullscreen = async () => {
+          try {
+            if (!Eitaa.WebApp.isFullscreen && Eitaa.WebApp.requestFullscreen) {
+              await Eitaa.WebApp.requestFullscreen();
             }
           } catch (e) {}
         };
@@ -87,6 +92,30 @@
             opacity: 0;
             transition: opacity 0.5s ease;
             padding-bottom: 100px;
+            position: relative;
+            z-index: 1;
+        }
+
+        #bg-animation-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .falling-letter {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.07);
+            font-family: 'Vazirmatn', sans-serif;
+            font-weight: 100;
+            font-size: 2rem;
+            user-select: none;
+            will-change: transform;
+        }
+
+        body.light .falling-letter {
+            color: rgba(0, 0, 0, 0.05);
         }
 
         #splash-screen {
@@ -154,6 +183,7 @@
         <p class="mt-8 text-sm text-gray-400 opacity-80">کاری از سید آروین موسوی</p>
     </div>
 
+    <div id="bg-animation-container"></div>
     <div id="game-container" class="p-4 relative min-h-screen flex flex-col dark">
         <!-- Main Menu -->
         <div id="main-menu" class="h-full flex flex-col justify-center items-center space-y-6 hidden">
@@ -250,6 +280,11 @@
                     <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
                     <img src="game_adjectives.png" class="w-20 h-20 mb-2" alt="Adjectives">
                     <span class="font-bold text-sm">صفت‌ها</span>
+                </div>
+                <div data-game="verbs" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.7s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_translate.png" class="w-20 h-20 mb-2" alt="Verbs" style="filter: hue-rotate(280deg);">
+                    <span class="font-bold text-sm">افعال</span>
                 </div>
             </div>
         </div>

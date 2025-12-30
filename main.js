@@ -18,7 +18,8 @@ const GAME_TYPES = {
     PLACES: 'places',
     OBJECTS: 'objects',
     CLOTHES: 'clothes',
-    ADJECTIVES: 'adjectives'
+    ADJECTIVES: 'adjectives',
+    VERBS: 'verbs'
 };
 
 class App {
@@ -29,7 +30,7 @@ class App {
         this.timerInterval = null;
         this.timeLeft = 30;
         this.theme = 'dark';
-        this.maxLevels = 200;
+        this.maxLevels = 600;
         
         // Progress structure: { gameType: { level: 0, medals: 0, completed: false } }
         this.progress = this.loadProgress();
@@ -41,6 +42,7 @@ class App {
         this.init();
         this.setupEventListeners();
         this.registerServiceWorker();
+        this.initBackgroundAnimation();
     }
 
     registerServiceWorker() {
@@ -354,27 +356,17 @@ class App {
 
     openArvin() {
         const url = 'https://eitaa.com/Arvinweb';
-        // Prefer SDK method if available (per developer.eitaa.com JS SDK)
         try {
-            if (window.Eitaa && Eitaa.WebApp) {
-                // Different SDK builds might expose different helpers; try common names
-                if (typeof Eitaa.WebApp.openLink === 'function') {
-                    Eitaa.WebApp.openLink(url);
-                    return;
-                }
-                if (typeof Eitaa.WebApp.openUrl === 'function') {
-                    Eitaa.WebApp.openUrl(url);
-                    return;
-                }
-                if (typeof Eitaa.WebApp.open === 'function') {
-                    Eitaa.WebApp.open(url);
-                    return;
-                }
+            if (window.Eitaa && Eitaa.WebApp && typeof Eitaa.WebApp.openEitaaLink === 'function') {
+                Eitaa.WebApp.openEitaaLink(url);
+                return;
+            } else if (window.Eitaa && Eitaa.WebApp && typeof Eitaa.WebApp.openLink === 'function') {
+                Eitaa.WebApp.openLink(url, { try_instant_view: true });
+                return;
             }
         } catch (e) {
-            console.warn('Eitaa open link failed', e);
+            console.warn('Eitaa SDK openLink failed', e);
         }
-        // Fallback to standard navigation
         window.open(url, '_blank');
     }
 
@@ -445,83 +437,107 @@ class App {
             case GAME_TYPES.ADJECTIVES:
                 this.renderAdjectivesGame();
                 break;
+            case GAME_TYPES.VERBS:
+                this.renderVerbsGame();
+                break;
         }
     }
 
     // --- DATA LIBRARIES (Scaling to 300+ items) ---
     getVocabData(category) {
+        const baseAnimals = [
+            { en: 'Cat', fa: 'گربه' }, { en: 'Dog', fa: 'سگ' }, { en: 'Lion', fa: 'شیر' }, { en: 'Elephant', fa: 'فیل' },
+            { en: 'Tiger', fa: 'ببر' }, { en: 'Rabbit', fa: 'خرگوش' }, { en: 'Giraffe', fa: 'زرافه' }, { en: 'Monkey', fa: 'میمون' },
+            { en: 'Snake', fa: 'مار' }, { en: 'Zebra', fa: 'گورخر' }, { en: 'Panda', fa: 'پاندا' }, { en: 'Wolf', fa: 'گرگ' },
+            { en: 'Fox', fa: 'روباه' }, { en: 'Bear', fa: 'خرس' }, { en: 'Eagle', fa: 'عقاب' }, { en: 'Dolphin', fa: 'دلفین' },
+            { en: 'Shark', fa: 'کوسه' }, { en: 'Ant', fa: 'مورچه' }, { en: 'Bee', fa: 'زنبور' }, { en: 'Spider', fa: 'عنکبوت' },
+            { en: 'Horse', fa: 'اسب' }, { en: 'Cow', fa: 'گاو' }, { en: 'Sheep', fa: 'گوسفند' }, { en: 'Chicken', fa: 'مرغ' },
+            { en: 'Duck', fa: 'اردک' }, { en: 'Frog', fa: 'قورباغه' }, { en: 'Turtle', fa: 'لاک‌پشت' }, { en: 'Fish', fa: 'ماهی' },
+            { en: 'Whale', fa: 'وال' }, { en: 'Octopus', fa: 'اختاپوس' }, { en: 'Butterfly', fa: 'پروانه' }, { en: 'Bird', fa: 'پرنده' },
+            { en: 'Parrot', fa: 'طوطی' }, { en: 'Mouse', fa: 'موش' }, { en: 'Camel', fa: 'شتر' }, { en: 'Donkey', fa: 'الاغ' },
+            { en: 'Deer', fa: 'آهو' }, { en: 'Goat', fa: 'بز' }, { en: 'Owl', fa: 'جغد' }, { en: 'Kangaroo', fa: 'کانگورو' },
+            { en: 'Squirrel', fa: 'سنجاب' }, { en: 'Hamster', fa: 'همستر' }, { en: 'Bat', fa: 'خفاش' }, { en: 'Crocodile', fa: 'تمساح' },
+            { en: 'Hippo', fa: 'اسب آبی' }, { en: 'Rhino', fa: 'کرگدن' }, { en: 'Penguin', fa: 'پنگوئن' }, { en: 'Cheetah', fa: 'یوزپلنگ' }
+        ];
+
+        const baseJobs = [
+            { en: 'Doctor', fa: 'دکتر' }, { en: 'Teacher', fa: 'معلم' }, { en: 'Engineer', fa: 'مهندس' }, { en: 'Pilot', fa: 'خلبان' },
+            { en: 'Chef', fa: 'آشپز' }, { en: 'Farmer', fa: 'کشاورز' }, { en: 'Driver', fa: 'راننده' }, { en: 'Singer', fa: 'خواننده' },
+            { en: 'Lawyer', fa: 'وکیل' }, { en: 'Artist', fa: 'هنرمند' }, { en: 'Nurse', fa: 'پرستار' }, { en: 'Police', fa: 'پلیس' },
+            { en: 'Dentist', fa: 'دندانپزشک' }, { en: 'Baker', fa: 'نانوا' }, { en: 'Writer', fa: 'نویسنده' }, { en: 'Actor', fa: 'بازیگر' },
+            { en: 'Soldier', fa: 'سرباز' }, { en: 'Scientist', fa: 'دانشمند' }, { en: 'Architect', fa: 'معمار' }, { en: 'Mechanic', fa: 'مکانیک' },
+            { en: 'Electrician', fa: 'برق‌کار' }, { en: 'Plumber', fa: 'لوله‌کش' }, { en: 'Gardener', fa: 'باغبان' }, { en: 'Firefighter', fa: 'آتش‌نشان' },
+            { en: 'Photographer', fa: 'عکاس' }, { en: 'Journalist', fa: 'خبرنگار' }, { en: 'Librarian', fa: 'کتابدار' }, { en: 'Coach', fa: 'مربی' },
+            { en: 'Barber', fa: 'آرایشگر' }, { en: 'Tailor', fa: 'خیاط' }, { en: 'Butcher', fa: 'قصاب' }, { en: 'Waiter', fa: 'پیشخدمت' }
+        ];
+
+        const basePlaces = [
+            { en: 'Hospital', fa: 'بیمارستان' }, { en: 'School', fa: 'مدرسه' }, { en: 'Park', fa: 'پارک' }, { en: 'Restaurant', fa: 'رستوران' },
+            { en: 'Airport', fa: 'فرودگاه' }, { en: 'Bank', fa: 'بانک' }, { en: 'Library', fa: 'کتابخانه' }, { en: 'Supermarket', fa: 'سوپرمارکت' },
+            { en: 'Cinema', fa: 'سینما' }, { en: 'Museum', fa: 'موزه' }, { en: 'Gym', fa: 'باشگاه' }, { en: 'Pharmacy', fa: 'داروخانه' },
+            { en: 'Bakery', fa: 'نانوایی' }, { en: 'Coffee shop', fa: 'کافی‌شاپ' }, { en: 'Police station', fa: 'ایستگاه پلیس' },
+            { en: 'Hotel', fa: 'هتل' }, { en: 'Gas station', fa: 'پمپ بنزین' }, { en: 'Beach', fa: 'ساحل' }, { en: 'Stadium', fa: 'استادیوم' },
+            { en: 'University', fa: 'دانشگاه' }, { en: 'Zoo', fa: 'باغ وحش' }, { en: 'Theater', fa: 'تئاتر' }, { en: 'Post office', fa: 'اداره پست' },
+            { en: 'Stadium', fa: 'ورزشگاه' }, { en: 'Church', fa: 'کلیسا' }, { en: 'Mosque', fa: 'مسجد' }, { en: 'Bridge', fa: 'پل' }
+        ];
+
+        const baseObjects = [
+            { en: 'Chair', fa: 'صندلی' }, { en: 'Table', fa: 'میز' }, { en: 'Pen', fa: 'خودکار' }, { en: 'Phone', fa: 'تلفن' },
+            { en: 'Laptop', fa: 'لپ‌تاپ' }, { en: 'Key', fa: 'کلید' }, { en: 'Bottle', fa: 'بطری' }, { en: 'Bag', fa: 'کیف' },
+            { en: 'Mirror', fa: 'آینه' }, { en: 'Clock', fa: 'ساعت' }, { en: 'Lamp', fa: 'لامپ' }, { en: 'Window', fa: 'پنجره' },
+            { en: 'Door', fa: 'در' }, { en: 'Bed', fa: 'تخت خواب' }, { en: 'Spoon', fa: 'قاشق' }, { en: 'Fork', fa: 'چنگال' },
+            { en: 'Knife', fa: 'چاقو' }, { en: 'Plate', fa: 'بشقاب' }, { en: 'Cup', fa: 'فنجان' }, { en: 'Glasses', fa: 'عینک' },
+            { en: 'Wallet', fa: 'کیف پول' }, { en: 'Umbrella', fa: 'چتر' }, { en: 'Comb', fa: 'شانه' }, { en: 'Towel', fa: 'حوله' },
+            { en: 'Curtain', fa: 'پرده' }, { en: 'Pillow', fa: 'بالش' }, { en: 'Blanket', fa: 'پتو' }, { en: 'Soap', fa: 'صابون' }
+        ];
+
+        const baseClothes = [
+            { en: 'Shirt', fa: 'پیراهن' }, { en: 'Pants', fa: 'شلوار' }, { en: 'Dress', fa: 'لباس زنانه' }, { en: 'Hat', fa: 'کلاه' },
+            { en: 'Shoes', fa: 'کفش' }, { en: 'Socks', fa: 'جوراب' }, { en: 'Jacket', fa: 'کاپشن' }, { en: 'Coat', fa: 'کت' },
+            { en: 'Skirt', fa: 'دامن' }, { en: 'Gloves', fa: 'دستکش' }, { en: 'Scarf', fa: 'شال گردن' }, { en: 'Tie', fa: 'کرافات' },
+            { en: 'Belt', fa: 'کمربند' }, { en: 'Boots', fa: 'چکمه' }, { en: 'Sneakers', fa: 'کفش ورزشی' }, { en: 'Sweater', fa: 'پلیور' },
+            { en: 'Suit', fa: 'کت و شلوار' }, { en: 'Uniform', fa: 'یونیفرم' }, { en: 'Jeans', fa: 'شلوار لی' }, { en: 'Raincoat', fa: 'بارانی' }
+        ];
+
+        const baseAdjectives = [
+            { en: 'Big', fa: 'بزرگ' }, { en: 'Small', fa: 'کوچک' }, { en: 'Hot', fa: 'داغ' }, { en: 'Cold', fa: 'سرد' },
+            { en: 'Happy', fa: 'خوشحال' }, { en: 'Sad', fa: 'غمگین' }, { en: 'Fast', fa: 'سریع' }, { en: 'Slow', fa: 'آهسته' },
+            { en: 'New', fa: 'جدید' }, { en: 'Old', fa: 'قدیمی' }, { en: 'Beautiful', fa: 'زیبا' }, { en: 'Ugly', fa: 'زشت' },
+            { en: 'Easy', fa: 'آسان' }, { en: 'Hard', fa: 'سخت' }, { en: 'Good', fa: 'خوب' }, { en: 'Bad', fa: 'بد' },
+            { en: 'Rich', fa: 'پولدار' }, { en: 'Poor', fa: 'فقیر' }, { en: 'Strong', fa: 'قوی' }, { en: 'Weak', fa: 'ضعیف' },
+            { en: 'Clever', fa: 'باهوش' }, { en: 'Lazy', fa: 'تنبل' }, { en: 'Brave', fa: 'شجاع' }, { en: 'Kind', fa: 'مهربان' }
+        ];
+
+        const baseVerbs = [
+            { en: 'Go', fa: 'رفتن' }, { en: 'Eat', fa: 'خوردن' }, { en: 'Sleep', fa: 'خوابیدن' }, { en: 'Run', fa: 'دویدن' },
+            { en: 'Talk', fa: 'صحبت کردن' }, { en: 'Read', fa: 'خواندن' }, { en: 'Write', fa: 'نوشتن' }, { en: 'Sing', fa: 'آواز خواندن' },
+            { en: 'Drink', fa: 'نوشیدن' }, { en: 'Think', fa: 'فکر کردن' }, { en: 'Look', fa: 'نگاه کردن' }, { en: 'Listen', fa: 'گوش دادن' },
+            { en: 'Buy', fa: 'خریدن' }, { en: 'Give', fa: 'دادن' }, { en: 'Take', fa: 'گرفتن' }, { en: 'Open', fa: 'باز کردن' },
+            { en: 'Close', fa: 'بستن' }, { en: 'Walk', fa: 'قدم زدن' }, { en: 'Jump', fa: 'پریدن' }, { en: 'Work', fa: 'کار کردن' },
+            { en: 'Study', fa: 'درس خواندن' }, { en: 'Play', fa: 'بازی کردن' }, { en: 'Cook', fa: 'آشپزی کردن' }, { en: 'Clean', fa: 'تمیز کردن' }
+        ];
+
+        const baseFamily = [
+            { en: 'Father', fa: 'پدر' }, { en: 'Mother', fa: 'مادر' }, { en: 'Brother', fa: 'برادر' }, { en: 'Sister', fa: 'خواهر' },
+            { en: 'Grandfather', fa: 'پدربزرگ' }, { en: 'Grandmother', fa: 'مادربزرگ' }, { en: 'Uncle', fa: 'عمو/دایی' }, { en: 'Aunt', fa: 'عمه/خاله' },
+            { en: 'Son', fa: 'پسر' }, { en: 'Daughter', fa: 'دختر' }, { en: 'Baby', fa: 'نوزاد' }, { en: 'Wife', fa: 'همسر (زن)' },
+            { en: 'Husband', fa: 'همسر (شوهر)' }, { en: 'Parents', fa: 'والدین' }, { en: 'Children', fa: 'فرزندان' }
+        ];
+
+        // Combine all for translate master pool (total unique words ~200)
+        // Then double it by switching En->Fa and Fa->En directions
+        const masterPool = [...baseAnimals, ...baseJobs, ...basePlaces, ...baseObjects, ...baseClothes, ...baseAdjectives, ...baseFamily];
+
         const libraries = {
-            animals: [
-                { en: 'Cat', fa: 'گربه' }, { en: 'Dog', fa: 'سگ' }, { en: 'Lion', fa: 'شیر' }, { en: 'Elephant', fa: 'فیل' },
-                { en: 'Tiger', fa: 'ببر' }, { en: 'Rabbit', fa: 'خرگوش' }, { en: 'Giraffe', fa: 'زرافه' }, { en: 'Monkey', fa: 'میمون' },
-                { en: 'Snake', fa: 'مار' }, { en: 'Zebra', fa: 'گورخر' }, { en: 'Panda', fa: 'پاندا' }, { en: 'Wolf', fa: 'گرگ' },
-                { en: 'Fox', fa: 'روباه' }, { en: 'Bear', fa: 'خرس' }, { en: 'Eagle', fa: 'عقاب' }, { en: 'Dolphin', fa: 'دلفین' },
-                { en: 'Shark', fa: 'کوسه' }, { en: 'Ant', fa: 'مورچه' }, { en: 'Bee', fa: 'زنبور' }, { en: 'Spider', fa: 'عنکبوت' },
-                { en: 'Horse', fa: 'اسب' }, { en: 'Cow', fa: 'گاو' }, { en: 'Sheep', fa: 'گوسفند' }, { en: 'Chicken', fa: 'مرغ' },
-                { en: 'Duck', fa: 'اردک' }, { en: 'Frog', fa: 'قورباغه' }, { en: 'Turtle', fa: 'لاک‌پشت' }, { en: 'Fish', fa: 'ماهی' },
-                { en: 'Whale', fa: 'وال' }, { en: 'Octopus', fa: 'اختاپوس' }, { en: 'Butterfly', fa: 'پروانه' }, { en: 'Bird', fa: 'پرنده' },
-                { en: 'Parrot', fa: 'طوطی' }, { en: 'Mouse', fa: 'موش' }, { en: 'Camel', fa: 'شتر' }, { en: 'Donkey', fa: 'الاغ' },
-                { en: 'Deer', fa: 'آهو' }, { en: 'Goat', fa: 'بز' }, { en: 'Owl', fa: 'جغد' }, { en: 'Kangaroo', fa: 'کانگورو' }
-            ],
-            jobs: [
-                { en: 'Doctor', fa: 'دکتر' }, { en: 'Teacher', fa: 'معلم' }, { en: 'Engineer', fa: 'مهندس' }, { en: 'Pilot', fa: 'خلبان' },
-                { en: 'Chef', fa: 'آشپز' }, { en: 'Farmer', fa: 'کشاورز' }, { en: 'Driver', fa: 'راننده' }, { en: 'Singer', fa: 'خواننده' },
-                { en: 'Lawyer', fa: 'وکیل' }, { en: 'Artist', fa: 'هنرمند' }, { en: 'Nurse', fa: 'پرستار' }, { en: 'Police', fa: 'پلیس' },
-                { en: 'Dentist', fa: 'دندانپزشک' }, { en: 'Baker', fa: 'نانوا' }, { en: 'Writer', fa: 'نویسنده' }, { en: 'Actor', fa: 'بازیگر' },
-                { en: 'Soldier', fa: 'سرباز' }, { en: 'Scientist', fa: 'دانشمند' }, { en: 'Architect', fa: 'معمار' }, { en: 'Mechanic', fa: 'مکانیک' },
-                { en: 'Electrician', fa: 'برق‌کار' }, { en: 'Plumber', fa: 'لوله‌کش' }, { en: 'Gardener', fa: 'باغبان' }, { en: 'Firefighter', fa: 'آتش‌نشان' },
-                { en: 'Photographer', fa: 'عکاس' }, { en: 'Journalist', fa: 'خبرنگار' }, { en: 'Librarian', fa: 'کتابدار' }, { en: 'Coach', fa: 'مربی' }
-            ],
-            family: [
-                { en: 'Father', fa: 'پدر' }, { en: 'Mother', fa: 'مادر' }, { en: 'Brother', fa: 'برادر' }, { en: 'Sister', fa: 'خواهر' },
-                { en: 'Grandfather', fa: 'پدربزرگ' }, { en: 'Grandmother', fa: 'مادربزرگ' }, { en: 'Uncle', fa: 'عمو/دایی' }, { en: 'Aunt', fa: 'عمه/خاله' },
-                { en: 'Cousin', fa: 'پسرعمو/دخترخاله' }, { en: 'Son', fa: 'پسر' }, { en: 'Daughter', fa: 'دختر' }, { en: 'Baby', fa: 'نوزاد' },
-                { en: 'Wife', fa: 'زن (همسر)' }, { en: 'Husband', fa: 'شوهر (همسر)' }, { en: 'Parents', fa: 'والدین' }, { en: 'Children', fa: 'بچه‌ها' },
-                { en: 'Grandson', fa: 'نوه پسری' }, { en: 'Granddaughter', fa: 'نوه دختری' }, { en: 'Nephew', fa: 'برادرزاده/خواهرزاده' }, { en: 'Niece', fa: 'برادرزاده/خواهرزاده' },
-                { en: 'Grandparents', fa: 'پدربزرگ و مادربزرگ' }, { en: 'Stepfather', fa: 'ناپدری' }, { en: 'Stepmother', fa: 'نامادری' },
-                { en: 'Father-in-law', fa: 'پدرزن/پدرشوهر' }, { en: 'Mother-in-law', fa: 'مادرزن/مادرشوهر' }
-            ],
-            places: [
-                { en: 'Hospital', fa: 'بیمارستان' }, { en: 'School', fa: 'مدرسه' }, { en: 'Park', fa: 'پارک' }, { en: 'Restaurant', fa: 'رستوران' },
-                { en: 'Airport', fa: 'فرودگاه' }, { en: 'Bank', fa: 'بانک' }, { en: 'Library', fa: 'کتابخانه' }, { en: 'Supermarket', fa: 'سوپرمارکت' },
-                { en: 'Cinema', fa: 'سینما' }, { en: 'Museum', fa: 'موزه' }, { en: 'Gym', fa: 'باشگاه' }, { en: 'Pharmacy', fa: 'داروخانه' },
-                { en: 'Bakery', fa: 'نانوایی' }, { en: 'Coffee shop', fa: 'کافی‌شاپ' }, { en: 'Police station', fa: 'ایستگاه پلیس' },
-                { en: 'Hotel', fa: 'هتل' }, { en: 'Gas station', fa: 'پمپ بنزین' }, { en: 'Beach', fa: 'ساحل' }, { en: 'Stadium', fa: 'استادیوم' },
-                { en: 'University', fa: 'دانشگاه' }, { en: 'Zoo', fa: 'باغ وحش' }, { en: 'Theater', fa: 'تئاتر' }, { en: 'Post office', fa: 'اداره پست' }
-            ],
-            objects: [
-                { en: 'Chair', fa: 'صندلی' }, { en: 'Table', fa: 'میز' }, { en: 'Pen', fa: 'خودکار' }, { en: 'Phone', fa: 'تلفن' },
-                { en: 'Laptop', fa: 'لپ‌تاپ' }, { en: 'Key', fa: 'کلید' }, { en: 'Bottle', fa: 'بطری' }, { en: 'Bag', fa: 'کیف' },
-                { en: 'Mirror', fa: 'آینه' }, { en: 'Clock', fa: 'ساعت' }, { en: 'Lamp', fa: 'لامپ' }, { en: 'Window', fa: 'پنجره' },
-                { en: 'Door', fa: 'در' }, { en: 'Bed', fa: 'تخت خواب' }, { en: 'Spoon', fa: 'قاشق' }, { en: 'Fork', fa: 'چنگال' },
-                { en: 'Knife', fa: 'چاقو' }, { en: 'Plate', fa: 'بشقاب' }, { en: 'Cup', fa: 'فنجان' }, { en: 'Glasses', fa: 'عینک' },
-                { en: 'Wallet', fa: 'کیف پول' }, { en: 'Umbrella', fa: 'چتر' }, { en: 'Comb', fa: 'شانه' }, { en: 'Towel', fa: 'حوله' }
-            ],
-            clothes: [
-                { en: 'Shirt', fa: 'پیراهن' }, { en: 'Pants', fa: 'شلوار' }, { en: 'Dress', fa: 'لباس زنانه' }, { en: 'Hat', fa: 'کلاه' },
-                { en: 'Shoes', fa: 'کفش' }, { en: 'Socks', fa: 'جوراب' }, { en: 'Jacket', fa: 'کاپشن' }, { en: 'Coat', fa: 'کت' },
-                { en: 'Skirt', fa: 'دامن' }, { en: 'Gloves', fa: 'دستکش' }, { en: 'Scarf', fa: 'شال گردن' }, { en: 'Tie', fa: 'کرافات' },
-                { en: 'Belt', fa: 'کمربند' }, { en: 'Boots', fa: 'چکمه' }, { en: 'Sneakers', fa: 'کفش ورزشی' }, { en: 'Sweater', fa: 'پلیور' },
-                { en: 'Suit', fa: 'کت و شلوار' }, { en: 'Uniform', fa: 'یونیفرم' }, { en: 'Jeans', fa: 'شلوار لی' }, { en: 'Raincoat', fa: 'بارانی' }
-            ],
-            adjectives: [
-                { en: 'Big', fa: 'بزرگ' }, { en: 'Small', fa: 'کوچک' }, { en: 'Hot', fa: 'داغ' }, { en: 'Cold', fa: 'سرد' },
-                { en: 'Happy', fa: 'خوشحال' }, { en: 'Sad', fa: 'غمگین' }, { en: 'Fast', fa: 'سریع' }, { en: 'Slow', fa: 'آهسته' },
-                { en: 'New', fa: 'جدید' }, { en: 'Old', fa: 'قدیمی' }, { en: 'Beautiful', fa: 'زیبا' }, { en: 'Ugly', fa: 'زشت' },
-                { en: 'Easy', fa: 'آسان' }, { en: 'Hard', fa: 'سخت' }, { en: 'Good', fa: 'خوب' }, { en: 'Bad', fa: 'بد' },
-                { en: 'Rich', fa: 'پولدار' }, { en: 'Poor', fa: 'فقیر' }, { en: 'Strong', fa: 'قوی' }, { en: 'Weak', fa: 'ضعیف' }
-            ],
-            translate: [
-                { en: 'Book', fa: 'کتاب' }, { en: 'Water', fa: 'آب' }, { en: 'Sun', fa: 'خورشید' }, { en: 'Moon', fa: 'ماه' },
-                { en: 'Star', fa: 'ستاره' }, { en: 'Friend', fa: 'دوست' }, { en: 'School', fa: 'مدرسه' }, { en: 'House', fa: 'خانه' },
-                { en: 'Bread', fa: 'نان' }, { en: 'Love', fa: 'عشق' }, { en: 'Time', fa: 'زمان' }, { en: 'Day', fa: 'روز' },
-                { en: 'Night', fa: 'شب' }, { en: 'Earth', fa: 'زمین' }, { en: 'Forest', fa: 'جنگل' }, { en: 'Mountain', fa: 'کوه' },
-                { en: 'Sea', fa: 'دریا' }, { en: 'River', fa: 'رودخانه' }, { en: 'Sky', fa: 'آسمان' }, { en: 'Rain', fa: 'باران' },
-                { en: 'Snow', fa: 'برف' }, { en: 'Wind', fa: 'باد' }, { en: 'Fire', fa: 'آتش' }, { en: 'Tree', fa: 'درخت' },
-                { en: 'Flower', fa: 'گل' }, { en: 'City', fa: 'شهر' }, { en: 'Village', fa: 'روستا' }, { en: 'Road', fa: 'جاده' },
-                { en: 'Car', fa: 'ماشین' }, { en: 'Plane', fa: 'هواپیما' }, { en: 'Boat', fa: 'قایق' }, { en: 'Bicycle', fa: 'دوچرخه' },
-                { en: 'Computer', fa: 'کامپیوتر' }, { en: 'Phone', fa: 'تلفن' }, { en: 'Clock', fa: 'ساعت' }, { en: 'Money', fa: 'پول' }
-            ],
+            animals: baseAnimals,
+            jobs: baseJobs,
+            family: baseFamily,
+            places: basePlaces,
+            objects: baseObjects,
+            clothes: baseClothes,
+            adjectives: baseAdjectives,
+            verbs: baseVerbs,
+            translate: masterPool,
             sentences: [
                 { words: ['I', 'am', 'a', 'student'], fa: 'من یک دانش‌آموز هستم' },
                 { words: ['The', 'cat', 'is', 'sleeping'], fa: 'گربه در حال خوابیدن است' },
@@ -573,9 +589,13 @@ class App {
             { img: 'game_sentence.png', answer: 'PUZZLE' },
             { img: 'game_animal.png', answer: 'LION' },
             { img: 'game_job.png', answer: 'DOCTOR' },
-            { img: 'game_color.png', answer: 'COLOR' }
+            { img: 'game_color.png', answer: 'COLOR' },
+            { img: 'game_places.png', answer: 'PLACE' },
+            { img: 'game_objects.png', answer: 'OBJECT' },
+            { img: 'game_family.png', answer: 'FAMILY' },
+            { img: 'game_calendar.png', answer: 'TIME' },
+            { img: 'game_clothes.png', answer: 'OUTFIT' }
         ];
-        // Scale with level: more extra letters as levels go up
         const levelData = this.guessPool[this.currentLevel % this.guessPool.length];
         const extraDifficulty = Math.min(6, Math.floor(this.currentLevel / 5));
         const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -647,24 +667,35 @@ class App {
     renderTranslateGame() {
         const timerBox = document.getElementById('timer-box');
         timerBox.classList.remove('hidden');
-        const timeLimit = Math.max(3, 10 - Math.floor(this.currentLevel / 5));
+        const timeLimit = Math.max(3, 12 - Math.floor(this.currentLevel / 15));
         this.startTimer(timeLimit);
 
         const library = this.getVocabData('translate');
-        const word = library[this.currentLevel % library.length];
+        // Logic for 600 unique levels:
+        // 0-299: English -> Persian
+        // 300-599: Persian -> English (reusing library with reversed direction)
+        const isReversed = this.currentLevel >= library.length;
+        const wordData = library[this.currentLevel % library.length];
         
-        let options = [word.fa];
+        const question = isReversed ? wordData.fa : wordData.en;
+        const answer = isReversed ? wordData.en : wordData.fa;
+        const dir = isReversed ? 'rtl' : 'ltr';
+        const optDir = isReversed ? 'ltr' : 'rtl';
+
+        let options = [answer];
         while(options.length < 4) {
-            const rand = library[Math.floor(Math.random() * library.length)].fa;
-            if(!options.includes(rand)) options.push(rand);
+            const randData = library[Math.floor(Math.random() * library.length)];
+            const randOpt = isReversed ? randData.en : randData.fa;
+            if(!options.includes(randOpt)) options.push(randOpt);
         }
         this.shuffleArray(options);
-        const correctIdx = options.indexOf(word.fa);
+        const correctIdx = options.indexOf(answer);
 
         const html = `
             <div class="flex flex-col items-center w-full px-4 animate__animated animate__fadeIn">
-                <div class="text-6xl font-bold mb-12 gradient-text" dir="ltr">${word.en}</div>
-                <div class="grid grid-cols-1 gap-4 w-full max-w-xs" dir="rtl">
+                <div class="text-gray-400 text-sm mb-4" dir="rtl">ترجمه صحیح را انتخاب کنید:</div>
+                <div class="text-5xl font-bold mb-12 gradient-text text-center" dir="${dir}">${question}</div>
+                <div class="grid grid-cols-1 gap-4 w-full max-w-xs" dir="${optDir}">
                     ${options.map((opt, i) => `
                         <button onclick="window.app.checkTranslate(${i}, ${correctIdx})" class="w-full glass py-4 rounded-2xl text-xl font-bold btn-hover block">
                             ${opt}
@@ -889,14 +920,22 @@ class App {
     }
 
     renderNumToWordGame() {
-        // Range increases with level up to 300+
-        const range = Math.min(300, 20 + this.currentLevel);
-        const val = Math.floor(Math.random() * range);
+        // Level-based value for 200 unique, harder levels (up to 800+)
+        const val = (this.currentLevel * 4) + 7;
         const targetWord = this.numberToWords(val);
         
         let options = [targetWord];
+        // Generate foils that are numerically close to make it harder
+        const offsets = [-20, -10, -1, 1, 10, 20, 50, -50];
+        this.shuffleArray(offsets);
+        for (let off of offsets) {
+            if (options.length >= 4) break;
+            let foilVal = Math.max(0, val + off);
+            let opt = this.numberToWords(foilVal);
+            if (!options.includes(opt)) options.push(opt);
+        }
         while(options.length < 4) {
-            let rand = Math.floor(Math.random() * (range + 10));
+            let rand = Math.floor(Math.random() * 999);
             let opt = this.numberToWords(rand);
             if(!options.includes(opt)) options.push(opt);
         }
@@ -918,13 +957,20 @@ class App {
     }
 
     renderWordToNumGame() {
-        const range = Math.min(300, 20 + this.currentLevel);
-        const val = Math.floor(Math.random() * range);
+        // Level-based value for 200 unique, harder levels
+        const val = (this.currentLevel * 4) + 3;
         const targetWord = this.numberToWords(val);
         
         let options = [val];
+        const offsets = [-20, -10, -2, -1, 1, 2, 10, 20];
+        this.shuffleArray(offsets);
+        for (let off of offsets) {
+            if (options.length >= 4) break;
+            let foilVal = Math.max(0, val + off);
+            if (!options.includes(foilVal)) options.push(foilVal);
+        }
         while(options.length < 4) {
-            let rand = Math.floor(Math.random() * (range + 10));
+            let rand = Math.floor(Math.random() * 999);
             if(!options.includes(rand)) options.push(rand);
         }
         this.shuffleArray(options);
@@ -1095,6 +1141,10 @@ class App {
         this.renderCategoryChoiceGame('clothes', 'game_clothes.png');
     }
 
+    renderVerbsGame() {
+        this.renderCategoryChoiceGame('verbs', 'game_translate.png', 'hue-rotate(280deg)');
+    }
+
     renderCategoryChoiceGame(category, icon, filter = '') {
         const library = this.getVocabData(category);
         const data = library[this.currentLevel % library.length];
@@ -1262,6 +1312,47 @@ class App {
 
     shuffleString(str) {
         return str.split('').sort(() => Math.random() - 0.5).join('');
+    }
+
+    initBackgroundAnimation() {
+        const container = document.getElementById('bg-animation-container');
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        
+        const createLetter = () => {
+            // Only create if we are on the main menu or a screen that needs it
+            const isMenuVisible = !document.getElementById('main-menu').classList.contains('hidden');
+            const isMedalsVisible = !document.getElementById('medals-screen').classList.contains('hidden');
+            
+            if (!isMenuVisible && !isMedalsVisible) return;
+
+            const letter = document.createElement('div');
+            letter.className = 'falling-letter';
+            letter.innerText = alphabet[Math.floor(Math.random() * alphabet.length)];
+            
+            const startX = Math.random() * window.innerWidth;
+            const duration = 4 + Math.random() * 6;
+            const size = 1 + Math.random() * 3; // 1rem to 4rem
+            
+            letter.style.left = `${startX}px`;
+            letter.style.top = `-50px`;
+            letter.style.fontSize = `${size}rem`;
+            
+            container.appendChild(letter);
+
+            gsap.to(letter, {
+                y: window.innerHeight + 100,
+                x: startX + (Math.random() - 0.5) * 200, // drift
+                rotation: Math.random() * 360,
+                duration: duration,
+                ease: "none",
+                onComplete: () => {
+                    letter.remove();
+                }
+            });
+        };
+
+        // Spawn letters periodically
+        setInterval(createLetter, 400);
     }
 }
 
