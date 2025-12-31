@@ -3,1404 +3,356 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-    <script src="https://developer.eitaa.com/eitaa-web-app.js" crossorigin="anonymous"></script>
+    <title>آموزش زبان برتر</title>
+    <script src="https://developer.eitaa.com/eitaa-web-app.js"></script>
     <script>
     document.addEventListener("DOMContentLoaded", () => {
       try {
         if (!(window.Eitaa && Eitaa.WebApp)) return;
-        const wa = Eitaa.WebApp;
 
-        if (typeof wa.ready === 'function') wa.ready();
+        Eitaa.WebApp.ready();
 
-        if (typeof wa.setHeaderColor === 'function') {
-          wa.setHeaderColor('#000000');
-        }
+        if (Eitaa.WebApp.setHeaderColor)
+          Eitaa.WebApp.setHeaderColor('#1a1a2e');
 
-        if (typeof wa.enableClosingConfirmation === 'function') {
-          wa.enableClosingConfirmation();
-        }
+        if (Eitaa.WebApp.enableClosingConfirmation)
+          Eitaa.WebApp.enableClosingConfirmation();
 
-        if (typeof wa.disableVerticalSwipes === 'function') {
-          wa.disableVerticalSwipes();
-        }
-      } catch (e) {
-        // silent fail
-      }
+        if (Eitaa.WebApp.disableVerticalSwipes)
+          Eitaa.WebApp.disableVerticalSwipes();
+
+        const enterFullscreen = async () => {
+          try {
+            if (!Eitaa.WebApp.isFullscreen && Eitaa.WebApp.requestFullscreen) {
+              await Eitaa.WebApp.requestFullscreen();
+            }
+          } catch (e) {}
+        };
+        document.addEventListener('click', enterFullscreen, { once: true });
+      } catch (e) {}
     });
     </script>
-
-    <title>بازی حافظه تصویری</title>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" crossorigin="anonymous"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="apple-touch-icon" href="game_guess.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;700;900&display=swap');
-
-        :root {
-            --bg-dark: #020617;
-            --bg-slate: #0f172a;
-            --primary: #3b82f6;
-            --primary-glow: rgba(59, 130, 246, 0.5);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-white: rgba(255, 255, 255, 0.1);
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;400;700&display=swap');
+        
         body {
-            font-family: 'Vazirmatn', "Vazir", system-ui, -apple-system, sans-serif !important;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
+            font-family: 'Vazirmatn', sans-serif;
+            margin: 0;
+            user-select: none;
             overflow: hidden;
-            line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
+            transition: background 0.5s ease, color 0.5s ease;
         }
 
-        /* Layout Utilities */
-        .fixed-inset { position: fixed; inset: 0; }
-        .flex { display: flex; }
-        .flex-col { flex-direction: column; }
-        .items-center { align-items: center; }
-        .justify-center { justify-content: center; }
-        .justify-between { justify-content: space-between; }
-        .text-center { text-align: center; }
-        .fixed { position: fixed; }
-        .bottom-0 { bottom: 0; }
-        .left-0 { left: 0; }
-        .right-0 { right: 0; }
-        .z-40 { z-index: 40; }
-        .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05); }
-        .backdrop-blur-md { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-        .border-t { border-top: 1px solid; }
-        .border-white\/10 { border-color: rgba(255, 255, 255, 0.1); }
-        .w-full { width: 100%; }
-        .h-full { height: 100%; }
-        .p-4 { padding: 1rem; }
-        .p-6 { padding: 1.5rem; }
-        .p-8 { padding: 2rem; }
-        .mb-2 { margin-bottom: 0.5rem; }
-        .mb-4 { margin-bottom: 1rem; }
-        .mb-6 { margin-bottom: 1.5rem; }
-        .mb-8 { margin-bottom: 2rem; }
-        .mb-10 { margin-bottom: 2.5rem; }
-        .mt-8 { margin-top: 2rem; }
-        .gap-2 { gap: 0.5rem; }
-        .gap-3 { gap: 0.75rem; }
-        .gap-4 { gap: 1rem; }
-        .gap-6 { gap: 1.5rem; }
-        .hidden { display: none !important; }
+        body.dark {
+            background: radial-gradient(circle at top right, #1a1a2e, #16213e);
+            color: white;
+        }
 
-        /* Typography */
-        .text-xs { font-size: 0.75rem; }
-        .text-sm { font-size: 0.875rem; }
-        .text-xl { font-size: 1.25rem; }
-        .text-2xl { font-size: 1.5rem; }
-        .text-3xl { font-size: 1.875rem; }
-        .text-4xl { font-size: 2.25rem; }
-        .font-bold { font-weight: 700; }
-        .font-black { font-weight: 900; }
-        .font-mono { font-family: monospace; }
-        .text-muted { color: var(--text-muted); }
-        .text-blue { color: var(--primary); }
-        .text-red { color: var(--danger); }
+        body.light {
+            background: radial-gradient(circle at top right, #f0f2f5, #e0e5ec);
+            color: #1a1a2e;
+        }
 
-        /* Components */
         .glass {
-            background-color: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid var(--border-white);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-            border-radius: 1.5rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #2563eb, #3b82f6);
-            border: none;
-            color: white;
-            padding: 1rem;
-            border-radius: 1rem;
-            font-weight: 700;
-            font-size: 1.125rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.39);
-        }
-
-        .btn-primary:active { transform: scale(0.96); }
-
-        .btn-outline {
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-white);
-            color: white;
-            padding: 1rem;
-            border-radius: 1rem;
-            font-weight: 700;
-            font-size: 1.125rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .btn-outline:active { background: rgba(255, 255, 255, 0.1); transform: scale(0.96); }
-
-        .btn-ghost {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        .btn-ghost:hover { color: white; }
-
-        /* Specialized Views */
-        .screen-container {
-            z-index: 50;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
+        body.light .glass {
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
-        .panel-max-sm { width: 100%; max-width: 24rem; }
-
-        /* Visual Effects */
-        .bg-gradient-text {
-            background: linear-gradient(to right, #60a5fa, #34d399);
+        .gradient-text {
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        #bg-canvas-container {
+        .btn-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-hover:active {
+            transform: scale(0.95);
+        }
+
+        #game-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            padding-bottom: 100px;
+            position: relative;
+            z-index: 1;
+        }
+
+        #bg-animation-container {
             position: fixed;
             inset: 0;
+            pointer-events: none;
             z-index: 0;
-            pointer-events: none;
-            background: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #0f172a 50%, #020617 100%);
+            overflow: hidden;
         }
 
-        .pattern-overlay {
+        .falling-letter {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.07);
+            font-family: 'Vazirmatn', sans-serif;
+            font-weight: 100;
+            font-size: 2rem;
+            user-select: none;
+            will-change: transform;
+        }
+
+        body.light .falling-letter {
+            color: rgba(0, 0, 0, 0.05);
+        }
+
+        #splash-screen {
             position: fixed;
             inset: 0;
-            pointer-events: none;
-            z-index: 10;
-            opacity: 0.2;
-            background-repeat: repeat;
-        }
-
-        /* Loading */
-        .loading-container {
-            width: 16rem;
-            height: 0.5rem;
-            background: #1e293b;
-            border-radius: 9999px;
-            overflow: hidden;
-        }
-        .loading-bar {
-            height: 100%;
-            background: var(--primary);
-            width: 0%;
-            transition: width 0.3s;
-        }
-
-        /* Settings Options */
-        .setting-card {
-            background: rgba(255,255,255,0.03);
-            padding: 1rem;
-            border-radius: 1rem;
-            border: 1px solid var(--border-white);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .grid-select {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
-        }
-        .grid-select-3 { grid-template-columns: repeat(3, 1fr); }
-
-        .select-opt {
-            position: relative;
-            cursor: pointer;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            border: 2px solid transparent;
-            transition: border-color 0.2s;
-        }
-        .select-opt.selected { border-color: var(--primary); }
-        .select-opt img { width: 100%; height: 5rem; object-fit: cover; display: block; }
-        .select-opt-square img { aspect-ratio: 1/1; height: auto; }
-        .select-label {
-            position: absolute;
-            bottom: 0.5rem;
-            right: 0.5rem;
-            font-size: 0.75rem;
-            background: rgba(0,0,0,0.6);
-            padding: 0.1rem 0.5rem;
-            border-radius: 0.25rem;
-        }
-
-        /* Toggle Switch */
-        .toggle-switch {
-            width: 3.5rem;
-            height: 1.75rem;
-            background: #334155;
-            border-radius: 9999px;
-            position: relative;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .toggle-switch.active { background: var(--primary); }
-        .toggle-switch .dot {
-            width: 1.25rem;
-            height: 1.25rem;
-            background: white;
-            border-radius: 50%;
-            position: absolute;
-            top: 0.25rem;
-            left: 0.25rem;
-            transition: transform 0.3s;
-        }
-        .toggle-switch.active .dot { transform: translateX(1.75rem); }
-
-        /* Game Card Engine */
-        .card-grid {
-            display: grid;
-            gap: 0.45rem; /* tighter spacing so more cards fit */
-            max-width: 100%;
-            width: fit-content;
-            margin: 0 auto;
-            justify-items: center;
-            align-items: center;
-            place-content: center;
-            padding: 0.5rem;
-        }
-
-        .card-container {
-            perspective: 1000px;
-            width: 100%;
-            aspect-ratio: 4/3; /* horizontal aspect ratio */
-            cursor: pointer;
-        }
-
-        /* Card size presets per difficulty to scale cards larger on easier levels */
-        /* Increased sizes so in-game cards appear noticeably bigger */
-        .card-size-easy { max-width: 200px; min-width: 120px; }
-        .card-size-medium { max-width: 170px; min-width: 105px; }
-        /* Hard difficulty cards are slightly larger so they remain readable while still fitting the grid */
-        .card-size-hard { max-width: 140px; min-width: 84px; }
-
-        /* Ensure grid can shrink cards on narrow screens while keeping aspect */
-        @media (max-width: 420px) {
-            .card-size-easy { max-width: 160px; min-width: 100px; }
-            .card-size-medium { max-width: 140px; min-width: 92px; }
-            /* mobile: make hard cards larger but still compact */
-            .card-size-hard { max-width: 120px; min-width: 72px; }
-        }
-
-        .card-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            text-align: center;
-            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-            transform-style: preserve-3d;
-        }
-
-        .card-container.flipped .card-inner { transform: rotateY(180deg); }
-
-        .card-container.matched {
-            opacity: 0.4;
-            pointer-events: none;
-            transform: scale(0.92) rotate(2deg);
-            filter: grayscale(0.6) brightness(0.8);
-            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .card-front, .card-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            border-radius: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .card-front {
-            background: radial-gradient(circle at 50% 50%, #1e293b, #0f172a);
-            transform: rotateY(180deg);
-            border: 2px solid rgba(59, 130, 246, 0.4);
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
-            overflow: hidden;
-        }
-
-        .card-back {
-            background-size: cover;
-            background-position: center;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.7), 0 4px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .card-front img { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            filter: drop-shadow(0 0 8px rgba(0,0,0,0.35));
-            display: block;
-        }
-
-        .card-shine {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.05) 100%);
-            pointer-events: none;
-        }
-
-        /* Difficulty Buttons */
-        .btn-diff {
-            padding: 1rem;
-            border-radius: 0.75rem;
-            border: 1px solid transparent;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-diff-easy { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
-        .btn-diff-easy:hover { background: rgba(16, 185, 129, 0.25); }
-        .btn-diff-easy .title { color: #10b981; }
-        
-        /* medium slightly larger for emphasis */
-        .btn-diff-medium {
-            background: rgba(245, 158, 11, 0.15);
-            border-color: rgba(245, 158, 11, 0.3);
-            padding: 1.2rem;
-            transform: scale(1.03);
-            font-size: 1.03rem;
-        }
-        .btn-diff-medium:hover { background: rgba(245, 158, 11, 0.25); }
-        .btn-diff-medium .title { color: #f59e0b; }
-
-        /* hard noticeably larger */
-        .btn-diff-hard {
-            background: rgba(239, 68, 68, 0.15);
-            border-color: rgba(239, 68, 68, 0.3);
-            padding: 1.35rem;
-            transform: scale(1.08);
-            font-size: 1.08rem;
-        }
-        .btn-diff-hard:hover { background: rgba(239, 68, 68, 0.25); }
-        .btn-diff-hard .title { color: #ef4444; }
-
-        /* Helpers for grid column counts */
-        .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
-        .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
-        .grid-cols-5 { grid-template-columns: repeat(5, 1fr); }
-        .grid-cols-6 { grid-template-columns: repeat(6, 1fr); }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-
-        /* Page blocker overlay that disables interactions */
-        .page-blocker {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.45);
-            z-index: 39; /* sit below footer so footer link remains clickable */
-            pointer-events: all;
-        }
-        .page-blocker.hidden { display: none !important; pointer-events: none; }
-
-        /* Redesigned Footer */
-        .footer-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 0.75rem 1rem;
+            background: radial-gradient(circle at center, #1a1a2e, #0f0f1a);
             z-index: 1000;
             display: flex;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
-            align-items: center;
-            background: linear-gradient(transparent, rgba(2, 6, 23, 0.9) 40%);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
         }
 
-        .ads-button {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white !important;
-            text-decoration: none !important;
-            padding: 0.6rem 2rem;
-            border-radius: 999px;
-            font-size: 0.875rem;
-            font-weight: 700;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+        .loading-bar-container {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
         }
 
-        .ads-button:active {
-            transform: scale(0.94) translateY(2px);
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
-            background: linear-gradient(135deg, #2563eb, #1e40af);
+        .loading-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            box-shadow: 0 0 10px #00d2ff;
         }
 
-        .ads-button span { margin-top: -2px; }
+        .word-chip {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .word-chip:active {
+            transform: translateY(4px);
+        }
+
+        .glass-btn {
+            cursor: pointer;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .glass-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Custom scrollbar for game menus if needed */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
-    
-    <!-- Visual Effects Layer -->
-    <div class="pattern-overlay fixed-inset" style="background-image: url('bg_pattern_dots.png')"></div>
-    <div class="fixed-inset" style="background: radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.15), transparent 70%); z-index: 10; pointer-events: none;"></div>
-
-    <!-- Three.js Background Container -->
-    <div id="bg-canvas-container"></div>
-
-    <!-- Splash Screen -->
-    <div id="splash-screen" class="fixed-inset flex flex-col items-center justify-center" style="background-color: var(--bg-dark); z-index: 100; transition: opacity 1s;">
-        <img src="splash_logo.png" alt="Logo" class="animate-pulse" style="width: 8rem; height: 8rem; margin-bottom: 2rem;">
-        <h1 class="text-3xl font-bold mb-2">بازی حافظه تصویری</h1>
-        <p class="text-muted mb-8">کاری از سید آروین موسوی</p>
-        <div class="loading-container">
+    <div id="splash-screen">
+        <h1 class="text-6xl font-bold mb-4 gradient-text animate__animated animate__pulse animate__infinite">لرنیتا</h1>
+        <div class="loading-bar-container">
             <div id="loading-bar" class="loading-bar"></div>
         </div>
-        <p class="text-xs text-muted mt-8 opacity-60">درصورت بارگذاری نشدن، برنامک را بارگذاری مجدد کنید</p>
+        <p class="mt-8 text-sm text-gray-400 opacity-80">کاری از سید آروین موسوی</p>
     </div>
 
-    <!-- Main Menu -->
-    <div id="main-menu" class="fixed-inset screen-container">
-        <div class="glass p-8 panel-max-sm text-center">
-            <h2 class="text-4xl font-black mb-10 bg-gradient-text">منوی اصلی</h2>
+    <div id="bg-animation-container"></div>
+    <div id="game-container" class="p-4 relative min-h-screen flex flex-col dark">
+        <!-- Main Menu -->
+        <div id="main-menu" class="h-full flex flex-col justify-center items-center space-y-6 hidden">
+            <div class="flex justify-between items-center w-full max-w-md mb-4 px-4">
+                <h1 class="text-4xl font-bold animate__animated animate__fadeInDown gradient-text">لرنیتا</h1>
+                <div class="flex gap-2">
+                    <button onclick="window.app.showMedals()" class="glass p-2 rounded-full w-10 h-10 flex items-center justify-center text-xl">🏅</button>
+                    <button onclick="window.app.toggleTheme()" class="glass p-2 rounded-full w-10 h-10 flex items-center justify-center text-xl">🌓</button>
+                </div>
+            </div>
             
-            <div class="flex flex-col gap-4">
-                <button id="btn-start" class="btn-primary">شروع بازی</button>
-                <button id="btn-settings" class="btn-outline">تنظیمات</button>
-                
+            <div class="grid grid-cols-2 gap-4 w-full max-w-md px-2" id="game-menu-grid">
+                <div data-game="guess" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_guess.png" class="w-20 h-20 mb-2" alt="Guess Word">
+                    <span class="font-bold text-sm">حدس کلمه</span>
+                </div>
+                <div data-game="translate" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.1s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_translate.png" class="w-20 h-20 mb-2" alt="Fast Translate">
+                    <span class="font-bold text-sm">ترجمه سریع</span>
+                </div>
+                <div data-game="sentence" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.2s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_sentence.png" class="w-20 h-20 mb-2" alt="Sentence Builder">
+                    <span class="font-bold text-sm">جمله‌سازی</span>
+                </div>
+                <div data-game="grammar" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.3s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_grammar.png" class="w-20 h-20 mb-2" alt="Grammar Check">
+                    <span class="font-bold text-sm">ساختار دستوری</span>
+                </div>
+                <div data-game="hangman" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.4s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_hangman.png" class="w-20 h-20 mb-2" alt="Hangman">
+                    <span class="font-bold text-sm">Hangman</span>
+                </div>
+                <div data-game="numToWord" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.5s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_number.png" class="w-20 h-20 mb-2" alt="Numbers">
+                    <span class="font-bold text-sm">عدد به حروف</span>
+                </div>
+                <div data-game="wordToNum" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.6s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_number.png" class="w-20 h-20 mb-2" alt="Numbers" style="filter: saturate(2);">
+                    <span class="font-bold text-sm">حروف به عدد</span>
+                </div>
+                <div data-game="colors" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.7s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_color.png" class="w-20 h-20 mb-2" alt="Colors">
+                    <span class="font-bold text-sm">حدس رنگ‌ها</span>
+                </div>
+                <div data-game="animal" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.8s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_animal.png" class="w-20 h-20 mb-2" alt="Animals">
+                    <span class="font-bold text-sm">حدس حیوان</span>
+                </div>
+                <div data-game="jobs" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 0.9s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_job.png" class="w-20 h-20 mb-2" alt="Jobs">
+                    <span class="font-bold text-sm">مشاغل</span>
+                </div>
+                <div data-game="days" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.0s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_calendar.png" class="w-20 h-20 mb-2" alt="Days">
+                    <span class="font-bold text-sm">روزهای هفته</span>
+                </div>
+                <div data-game="months" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.1s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_calendar.png" class="w-20 h-20 mb-2" alt="Months" style="filter: hue-rotate(45deg);">
+                    <span class="font-bold text-sm">ماه‌های سال</span>
+                </div>
+                <div data-game="family" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.2s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_family.png" class="w-20 h-20 mb-2" alt="Family">
+                    <span class="font-bold text-sm">اعضای خانواده</span>
+                </div>
+                <div data-game="places" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.3s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_places.png" class="w-20 h-20 mb-2" alt="Places">
+                    <span class="font-bold text-sm">مکان‌ها</span>
+                </div>
+                <div data-game="objects" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.4s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_objects.png" class="w-20 h-20 mb-2" alt="Objects">
+                    <span class="font-bold text-sm">اشیاء</span>
+                </div>
+                <div data-game="clothes" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.5s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1"></div>
+                    <img src="game_clothes.png" class="w-20 h-20 mb-2" alt="Clothes">
+                    <span class="font-bold text-sm">لباس‌ها</span>
+                </div>
+                <div data-game="adjectives" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.6s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1">
+                        <div class="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">جدید</div>
+                    </div>
+                    <img src="game_adjectives.png" class="w-20 h-20 mb-2" alt="Adjectives">
+                    <span class="font-bold text-sm">صفت‌ها</span>
+                </div>
+                <div data-game="verbs" class="glass glass-btn p-4 rounded-3xl flex flex-col items-center btn-hover animate__animated animate__zoomIn relative" style="animation-delay: 1.7s;">
+                    <div class="status-badge absolute top-2 right-2 flex flex-col items-end gap-1">
+                        <div class="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">جدید</div>
+                    </div>
+                    <img src="game_translate.png" class="w-20 h-20 mb-2" alt="Verbs" style="filter: hue-rotate(280deg);">
+                    <span class="font-bold text-sm">افعال</span>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Difficulty Selection -->
-    <div id="difficulty-menu" class="hidden fixed-inset screen-container">
-        <div class="glass p-8 panel-max-sm text-center">
-            <h2 class="text-3xl font-bold mb-8">انتخاب سطح سختی</h2>
-            <div class="flex flex-col gap-4">
-                <div data-difficulty="easy" class="btn-diff btn-diff-easy">
-                    <span class="title text-xl font-bold flex flex-col">آسان</span>
-                    <span class="text-muted text-sm">۱۲ کارت (۳x۴)</span>
-                </div>
-                <div data-difficulty="medium" class="btn-diff btn-diff-medium">
-                    <span class="title text-xl font-bold flex flex-col">متوسط</span>
-                    <span class="text-muted text-sm">۱۶ کارت (۴x۴)</span>
-                </div>
-                <div data-difficulty="hard" class="btn-diff btn-diff-hard">
-                    <span class="title text-xl font-bold flex flex-col">سخت</span>
-                    <span class="text-muted text-sm">۳۰ کارت (۵x۶)</span>
+        <!-- Game Screens (Hidden by default) -->
+        <div id="game-screen" class="hidden h-full flex flex-col pt-12 pb-20">
+            <!-- Header -->
+            <div class="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
+                <button onclick="window.app.showMenu()" class="glass px-4 py-2 rounded-full text-xs">بازگشت</button>
+                <div id="game-stats" class="flex gap-4">
+                    <div class="glass px-4 py-2 rounded-full text-xs">امتیاز: <span id="score">۰</span></div>
+                    <div id="timer-box" class="glass px-4 py-2 rounded-full text-xs hidden">زمان: <span id="timer">۳۰</span></div>
                 </div>
             </div>
-            <button id="btn-back-menu" class="mt-8 btn-ghost">بازگشت به منو</button>
+
+            <div id="game-content" class="flex-grow flex flex-col items-center justify-center">
+                <!-- Content injected here -->
+            </div>
+        </div>
+
+        <!-- Feedback Overlay -->
+        <div id="feedback" class="fixed inset-0 pointer-events-none flex items-center justify-center z-50 transition-opacity duration-300 opacity-0">
+            <div id="feedback-icon" class="text-8xl"></div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div id="modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+            <div id="modal-content" class="glass p-8 rounded-3xl max-w-sm w-full text-center">
+                <h3 id="modal-title" class="text-2xl font-bold mb-4">آیا مطمئن هستید؟</h3>
+                <p id="modal-desc" class="mb-8 opacity-80">این مینی‌گیم قبلا کامل شده است. آیا می‌خواهید دوباره از مرحله ۱ شروع کنید؟</p>
+                <div class="flex gap-4">
+                    <button onclick="window.app.confirmReset()" class="flex-1 bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold">بله، شروع مجدد</button>
+                    <button onclick="window.app.closeModal()" class="flex-1 glass py-3 rounded-xl font-bold">انصراف</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medals Gallery -->
+        <div id="medals-screen" class="fixed inset-0 glass z-[90] hidden flex flex-col p-6 overflow-y-auto">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold gradient-text">مدال‌های من</h2>
+                <button onclick="window.app.hideMedals()" class="glass px-4 py-2 rounded-full">بازگشت</button>
+            </div>
+            <div id="medals-grid" class="grid grid-cols-2 gap-4">
+                <!-- Medals injected here -->
+            </div>
+        </div>
+
+        <!-- Global Footer -->
+        <div class="fixed bottom-0 left-0 right-0 p-4 text-center z-40 bg-white/5 backdrop-blur-md border-t border-white/10">
+            <button id="arvin-link" aria-label="Arvinweb" onclick="window.app.openArvin()" class="text-xs text-blue-400 font-bold underline" dir="rtl" style="background:none;border:none;padding:0;display:inline-block;cursor:pointer;">
+                ثبت تبلیغات @Arvinweb
+            </button>
         </div>
     </div>
 
-    <!-- Settings Menu -->
-    <div id="settings-menu" class="hidden fixed-inset screen-container">
-        <div class="glass p-6 w-full" style="max-width: 28rem; overflow-y: auto; max-h: 90vh;">
-            <h2 class="text-2xl font-bold mb-6 text-center">تنظیمات گرافیکی</h2>
-            
-            <div class="setting-card mb-8">
-                <span class="text-sm font-bold">پس‌زمینه متحرک (سه بعدی)</span>
-                <div id="toggle-animated-bg" class="toggle-switch">
-                    <div class="dot"></div>
-                </div>
-            </div>
-
-            <div class="mb-8">
-                <label class="text-muted text-sm mb-2" style="display: block;">طرح بافت پس‌زمینه</label>
-                <div class="grid-select">
-                    <div class="select-opt setting-opt-bg" data-bg="dots">
-                        <img src="bg_pattern_dots.png">
-                        <span class="select-label">نقطه‌ای</span>
-                    </div>
-                    <div class="select-opt setting-opt-bg" data-bg="waves">
-                        <img src="bg_pattern_waves.png">
-                        <span class="select-label">موج‌دار</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mb-8">
-                <label class="text-muted text-sm mb-2" style="display: block;">طرح پشت کارت‌ها</label>
-                <div class="grid-select grid-select-3">
-                    <div class="select-opt select-opt-square setting-opt-card" data-card="classic">
-                        <img src="card_back_classic.png">
-                    </div>
-                    <div class="select-opt select-opt-square setting-opt-card" data-card="modern">
-                        <img src="card_back_modern.png">
-                    </div>
-                    <div class="select-opt select-opt-square setting-opt-card" data-card="abstract">
-                        <img src="card_back_abstract.png">
-                    </div>
-                </div>
-            </div>
-
-            <button id="btn-save-settings" class="btn-primary w-full">ذخیره و بازگشت</button>
-        </div>
-    </div>
-
-    <!-- Win Modal -->
-    <div id="win-modal" class="hidden fixed-inset screen-container" style="background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);">
-        <div class="glass p-8 panel-max-sm text-center">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">🏆</div>
-            <h2 class="text-3xl font-bold mb-2">تبریک!</h2>
-            <p class="text-muted mb-6">شما تمام جفت‌ها را پیدا کردید.</p>
-            
-            <div class="flex gap-4 mb-8" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 1rem;">
-                <div class="flex-col flex" style="flex: 1;">
-                    <span class="text-xs text-muted">زمان</span>
-                    <span id="final-time" class="text-xl font-bold">00:00</span>
-                </div>
-                <div class="flex-col flex" style="flex: 1;">
-                    <span class="text-xs text-muted">امتیاز</span>
-                    <span id="final-score" class="text-xl font-bold">0</span>
-                </div>
-                <div class="flex-col flex" style="flex: 1;">
-                    <span class="text-xs text-muted">اشتباه‌ها</span>
-                    <span id="final-mistakes" class="text-xl font-bold text-red">0</span>
-                </div>
-            </div>
-
-            <button id="btn-win-close" class="btn-primary w-full">بازگشت به منو</button>
-        </div>
-    </div>
-
-    <!-- Game View -->
-    <div id="game-view" class="hidden fixed-inset flex flex-col" style="z-index: 40;">
-        <header class="p-4 flex justify-between items-center glass" style="border-radius: 0; border-bottom: 1px solid var(--border-white);">
-            <div class="flex items-center gap-4">
-                <button id="btn-quit" class="btn-outline text-red" style="padding: 0.5rem 1rem;">انصراف</button>
-            </div>
-            <div class="flex gap-6">
-                <div class="text-center">
-                    <div class="text-xs text-muted">زمان</div>
-                    <div id="timer" class="font-mono text-xl font-bold">00:00</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-xs text-muted">امتیاز</div>
-                    <div id="score" class="font-mono text-xl font-bold">0</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-xs text-muted">اشتباه‌ها</div>
-                    <div id="mistakes" class="font-mono text-xl font-bold text-red">0</div>
-                </div>
-            </div>
-        </header>
-        
-        <main class="flex-col flex items-center justify-center p-4" style="flex: 1;">
-            <div id="card-grid" class="card-grid">
-                <!-- Cards injected here -->
-            </div>
-        </main>
-
-        <div id="game-hint" class="p-4 text-center text-blue font-bold animate-pulse">
-            کارت‌ها رو به خاطر بسپار...
-        </div>
-    </div>
-
-    <!-- Page blocker overlay (shown by default to disable the page) -->
-    <div id="page-blocker" class="page-blocker"></div>
-
-    <!-- Redesigned Footer -->
-    <footer class="footer-nav">
-        <a href="https://eitaa.com/Arvinweb" class="ads-button" onclick="app.openArvin(event)">
-            <span>ثبت تبلیغات @Arvinweb</span>
-        </a>
-    </footer>
-
-    <script type="module">
-        import * as THREE from 'https://esm.sh/three';
-        import confetti from 'https://esm.sh/canvas-confetti';
-
-        // Minimal global error handling to prevent "Script error." spam while attempting to catch real issues
-        window.addEventListener('error', (event) => {
-            if (event.message === 'Script error.') return;
-            console.error('App Error:', event.message, 'at', event.filename, ':', event.lineno);
-        });
-
-        window.addEventListener('unhandledrejection', (ev) => {
-            if (ev.reason) console.error('Promise Rejection:', ev.reason);
-        });
-
-        // --- Settings Module ---
-        const getStorageItem = (key, fallback) => {
-            try {
-                const val = localStorage.getItem(key);
-                return val !== null ? val : fallback;
-            } catch (e) {
-                return fallback;
-            }
-        };
-
-        const settingsState = {
-            bg: getStorageItem('game_bg', 'waves'),
-            cardBack: getStorageItem('game_cardBack', 'classic'),
-            animatedBg: getStorageItem('game_animatedBg', 'true') !== 'false'
-        };
-
-        function updateVisuals() {
-            const bgUrl = settingsState.bg === 'dots' ? 'bg_pattern_dots.png' : 'bg_pattern_waves.png';
-            document.body.style.backgroundImage = `url(${bgUrl})`;
-            document.body.style.backgroundSize = 'cover';
-
-            const canvas = document.getElementById('bg-canvas-container');
-            if (canvas) {
-                canvas.style.display = settingsState.animatedBg ? 'block' : 'none';
-            }
-
-            const toggleBtn = document.getElementById('toggle-animated-bg');
-            if (toggleBtn) {
-                toggleBtn.classList.toggle('active', settingsState.animatedBg);
-            }
-
-            document.querySelectorAll('.setting-opt-bg').forEach(opt => {
-                opt.classList.toggle('selected', opt.dataset.bg === settingsState.bg);
-            });
-            document.querySelectorAll('.setting-opt-card').forEach(opt => {
-                opt.classList.toggle('selected', opt.dataset.card === settingsState.cardBack);
-            });
+    <script type="importmap">
+    {
+        "imports": {
+            "gsap": "https://esm.sh/gsap",
+            "canvas-confetti": "https://esm.sh/canvas-confetti"
         }
-
-        function saveSettings(newSettings) {
-            Object.assign(settingsState, newSettings);
-            try {
-                localStorage.setItem('game_bg', settingsState.bg);
-                localStorage.setItem('game_cardBack', settingsState.cardBack);
-                localStorage.setItem('game_animatedBg', settingsState.animatedBg);
-            } catch (e) {
-                console.warn("Settings could not be saved to local storage");
-            }
-            updateVisuals();
-        }
-
-        // --- Audio Module ---
-        let audioCtx = null;
-        const audioCache = {};
-
-        function getAudioContext() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            return audioCtx;
-        }
-
-        async function playSound(key) {
-            const ctx = getAudioContext();
-            if (ctx.state === 'suspended') {
-                await ctx.resume();
-            }
-
-            if (audioCache[key]) {
-                const source = ctx.createBufferSource();
-                source.buffer = audioCache[key];
-                source.connect(ctx.destination);
-                source.start(0);
-                return;
-            }
-
-            try {
-                const response = await fetch(`${key}.mp3`);
-                const arrayBuffer = await response.arrayBuffer();
-                const audioBuffer = await new Promise((resolve, reject) => {
-                    ctx.decodeAudioData(arrayBuffer, resolve, reject);
-                });
-                
-                audioCache[key] = audioBuffer;
-                const source = ctx.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(ctx.destination);
-                source.start(0);
-            } catch (e) {
-                console.warn("Audio play error for " + key, e);
-            }
-        }
-
-        // --- Navigation Module ---
-        let screens = {};
-        let onBackCallback = null;
-
-        function initNavigation(callback) {
-            screens = {
-                mainMenu: document.getElementById('main-menu'),
-                difficulty: document.getElementById('difficulty-menu'),
-                settings: document.getElementById('settings-menu'),
-                game: document.getElementById('game-view'),
-                win: document.getElementById('win-modal')
-            };
-
-            onBackCallback = callback;
-            
-            window.addEventListener('hashchange', (e) => {
-                const hash = location.hash.replace('#', '') || 'mainMenu';
-                applyScreenVisibility(hash);
-                if (onBackCallback) onBackCallback(hash);
-            });
-
-            const currentHash = location.hash.replace('#', '') || 'mainMenu';
-            applyScreenVisibility(currentHash);
-
-            if (!location.hash || location.hash === '#') {
-                try {
-                    history.replaceState(null, '', '#mainMenu');
-                } catch(e) {
-                    location.hash = 'mainMenu';
-                }
-            }
-        }
-
-        function showScreen(screenKey, push = true) {
-            const current = location.hash.replace('#', '') || 'mainMenu';
-            if (current === screenKey) return;
-
-            const screenEl = screens[screenKey];
-            if (screenEl) {
-                gsap.fromTo(screenEl, 
-                    { opacity: 0, scale: 0.95, y: 10 },
-                    { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: "power2.out" }
-                );
-            }
-
-            if (push) {
-                location.hash = screenKey;
-            } else {
-                history.replaceState(null, '', `#${screenKey}`);
-                applyScreenVisibility(screenKey);
-            }
-        }
-
-        function applyScreenVisibility(screenKey) {
-            Object.keys(screens).forEach(key => {
-                const element = screens[key];
-                if (!element) return;
-                
-                if (key === screenKey) {
-                    element.classList.remove('hidden');
-
-                    if (['win', 'mainMenu', 'difficulty', 'settings'].includes(key)) {
-                        element.classList.add('flex');
-                    }
-                } else {
-                    element.classList.add('hidden');
-                    element.classList.remove('flex');
-                }
-            });
-
-            try {
-                if (window.Eitaa && Eitaa.WebApp && Eitaa.WebApp.BackButton) {
-                    if (screenKey === 'mainMenu' || screenKey === 'splash') {
-                        Eitaa.WebApp.BackButton.hide();
-                    } else {
-                        Eitaa.WebApp.BackButton.show();
-                    }
-                }
-            } catch (e) {}
-        }
-
-        function getCurrentScreen() {
-            const hash = location.hash.replace('#', '');
-            return screens[hash] ? hash : 'mainMenu';
-        }
-
-        // --- Game Logic ---
-        const gameState = {
-            difficulty: 'easy',
-            score: 0,
-            time: 0,
-            mistakes: 0,
-            timerInterval: null,
-            flippedCards: [],
-            isProcessing: false,
-            matchesFound: 0,
-            totalPairs: 0,
-            imageCount: 15
-        };
-
-        function setupGame(difficulty) {
-            gameState.difficulty = difficulty;
-            const config = {
-                easy: { rows: 4, cols: 3, previewTime: 5000 },
-                medium: { rows: 4, cols: 4, previewTime: 7000 },
-                hard: { rows: 6, cols: 5, previewTime: 12000 }
-            }[difficulty];
-
-            gameState.totalPairs = (config.rows * config.cols) / 2;
-            gameState.matchesFound = 0;
-            gameState.score = 0;
-            gameState.time = 0;
-            gameState.mistakes = 0;
-            gameState.isProcessing = true;
-            
-            document.getElementById('score').textContent = '0';
-            document.getElementById('timer').textContent = '00:00';
-            const mistakesEl = document.getElementById('mistakes');
-            if (mistakesEl) mistakesEl.textContent = '0';
-            
-            generateGrid(config);
-
-            const hint = document.getElementById('game-hint');
-            hint.textContent = 'کارت‌ها رو به خاطر بسپار...';
-            hint.classList.remove('hidden');
-
-            setTimeout(() => {
-                flipAllCards(true);
-                setTimeout(() => {
-                    flipAllCards(false);
-                    gameState.isProcessing = false;
-                    hint.textContent = 'حالا جفت‌ها رو پیدا کن!';
-                    startTimer();
-                    setTimeout(() => hint.classList.add('hidden'), 2000);
-                }, config.previewTime);
-            }, 500);
-        }
-
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
-        function generateGrid(config) {
-            const grid = document.getElementById('card-grid');
-            grid.innerHTML = '';
-            
-            grid.className = 'card-grid';
-            grid.classList.add(`grid-cols-${config.cols}`);
-            grid.dataset.difficulty = gameState.difficulty;
-
-            const allIndices = Array.from({length: gameState.imageCount}, (_, i) => i + 1);
-            shuffleArray(allIndices);
-            const selectedIndices = allIndices.slice(0, gameState.totalPairs);
-            const deck = shuffleArray([...selectedIndices, ...selectedIndices]);
-
-            deck.forEach((imgIdx, idx) => {
-                const card = document.createElement('div');
-                card.className = 'card-container opacity-0 scale-50';
-                card.classList.add(`card-size-${gameState.difficulty}`);
-                card.dataset.id = imgIdx;
-                
-                // Use explicit root paths and added fallbacks
-                card.innerHTML = `
-                    <div class="card-inner shadow-2xl">
-                        <div class="card-back overflow-hidden" style="background-image: url('/card_back_${settingsState.cardBack}.png')">
-                            <div class="card-shine"></div>
-                        </div>
-                        <div class="card-front" style="background: #0f172a;">
-                            <div class="card-shine"></div>
-                            <img src="/card_${imgIdx}.png" alt="Card ${imgIdx}" loading="eager" 
-                                 class="drop-shadow-[0_0_15px_rgba(59,130,246,0.4)]"
-                                 onerror="this.style.display='none'; this.parentElement.innerHTML += '<span class=\'text-xs\'>خطا در بارگذاری</span>';">
-                        </div>
-                    </div>
-                `;
-                card.onclick = () => handleCardClick(card);
-                grid.appendChild(card);
-                
-                gsap.to(card, {
-                    opacity: 1,
-                    scale: 1,
-                    duration: 0.6,
-                    delay: idx * 0.03,
-                    ease: "back.out(1.7)"
-                });
-            });
-        }
-
-        function handleCardClick(card) {
-            if (gameState.isProcessing || card.classList.contains('flipped') || card.classList.contains('matched')) return;
-
-            playSound('click');
-            card.classList.add('flipped');
-            gameState.flippedCards.push(card);
-
-            if (gameState.flippedCards.length === 2) {
-                checkMatch();
-            }
-        }
-
-        function checkMatch() {
-            gameState.isProcessing = true;
-            const [card1, card2] = gameState.flippedCards;
-            
-            if (card1.dataset.id === card2.dataset.id) {
-                setTimeout(() => {
-                    playSound('match');
-                    gsap.to([card1, card2], {
-                        scale: 1.1,
-                        duration: 0.2,
-                        yoyo: true,
-                        repeat: 1,
-                        onComplete: () => {
-                            card1.classList.add('matched');
-                            card2.classList.add('matched');
-                        }
-                    });
-
-                    gameState.matchesFound++;
-                    gameState.score += 10;
-                    document.getElementById('score').textContent = gameState.score;
-                    gameState.flippedCards = [];
-                    gameState.isProcessing = false;
-
-                    if (gameState.matchesFound === gameState.totalPairs) {
-                        winGame();
-                    }
-                }, 500);
-            } else {
-                setTimeout(() => {
-                    playSound('error');
-                    // increment mistakes counter and update UI
-                    gameState.mistakes = (gameState.mistakes || 0) + 1;
-                    const mistakesEl = document.getElementById('mistakes');
-                    if (mistakesEl) mistakesEl.textContent = String(gameState.mistakes);
-                    
-                    card1.classList.remove('flipped');
-                    card2.classList.remove('flipped');
-                    gameState.flippedCards = [];
-                    gameState.isProcessing = false;
-                }, 1000);
-            }
-        }
-
-        function flipAllCards(show) {
-            document.querySelectorAll('.card-container').forEach(card => {
-                if (show) card.classList.add('flipped');
-                else card.classList.remove('flipped');
-            });
-        }
-
-        function startTimer() {
-            stopTimer();
-            gameState.timerInterval = setInterval(() => {
-                gameState.time++;
-                const mins = Math.floor(gameState.time / 60).toString().padStart(2, '0');
-                const secs = (gameState.time % 60).toString().padStart(2, '0');
-                document.getElementById('timer').textContent = `${mins}:${secs}`;
-            }, 1000);
-        }
-
-        function stopTimer() {
-            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
-        }
-
-        function winGame() {
-            stopTimer();
-            playSound('win');
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-            
-            setTimeout(() => {
-                const finalTimeStr = document.getElementById('timer').textContent;
-                document.getElementById('final-time').textContent = finalTimeStr;
-                document.getElementById('final-score').textContent = gameState.score;
-                const finalMistakesEl = document.getElementById('final-mistakes');
-                if (finalMistakesEl) finalMistakesEl.textContent = String(gameState.mistakes || 0);
-                showScreen('win', true);
-            }, 500);
-        }
-
-        function clearGameState() {
-            stopTimer();
-            gameState.flippedCards = [];
-            gameState.isProcessing = false;
-        }
-
-        // --- Global App Interface ---
-        // Provide a robust global openEitaaLink fallback so footer/menu links work
-        window.openEitaaLink = (url) => {
-            try {
-                const eitaaObj = window.Eitaa || {};
-                const webApp = eitaaObj.WebApp || {};
-                if (typeof webApp.openEitaaLink === 'function') {
-                    webApp.openEitaaLink(url);
-                    return true;
-                }
-                if (typeof webApp.openLink === 'function') {
-                    webApp.openLink(url);
-                    return true;
-                }
-                // some environments expose a global openEitaaLink already; call if present
-                if (typeof window._nativeOpenEitaaLink === 'function') {
-                    window._nativeOpenEitaaLink(url);
-                    return true;
-                }
-            } catch (e) {
-                console.warn('openEitaaLink handler failed', e);
-            }
-            // final fallback
-            try { window.open(url, '_blank'); } catch (e) {}
-            return false;
-        };
-
-        window.app = {
-            openArvin: (event) => {
-                if (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                const url = 'https://eitaa.com/Arvinweb';
-                try { playSound('click'); } catch(e) {}
-                
-                try {
-                    if (window.Eitaa && window.Eitaa.WebApp && typeof window.Eitaa.WebApp.openEitaaLink === 'function') {
-                        window.Eitaa.WebApp.openEitaaLink(url);
-                        return;
-                    }
-                } catch (e) {
-                    console.warn("Eitaa openEitaaLink failed, falling back", e);
-                }
-                
-                window.open(url, '_blank');
-            }
-        };
-
-        // --- Main App Logic ---
-        function startApp() {
-            try {
-                initNavigation((screenKey) => {
-                    if (screenKey !== 'game') {
-                        clearGameState();
-                    }
-                });
-                updateVisuals();
-                setupEventListeners();
-
-                const unlockAudio = () => {
-                    playSound('click'); 
-                    document.removeEventListener('touchstart', unlockAudio);
-                    document.removeEventListener('mousedown', unlockAudio);
-                };
-                document.addEventListener('touchstart', unlockAudio);
-                document.addEventListener('mousedown', unlockAudio);
-
-                preloadAssets();
-                initLoading();
-
-                setTimeout(() => {
-                    const splash = document.getElementById('splash-screen');
-                    if (splash && !splash.classList.contains('hidden')) {
-                        splash.classList.add('opacity-0');
-                        setTimeout(() => {
-                            splash.classList.add('hidden');
-                            showScreen('mainMenu', false);
-                        }, 500);
-                    }
-                }, 5000);
-                
-                setTimeout(() => {
-                    initBackground();
-                    initEitaa();
-                }, 100);
-
-            } catch (err) {
-                console.error("App boot failure:", err);
-                const splash = document.getElementById('splash-screen');
-                if (splash) splash.style.display = 'none';
-                const menu = document.getElementById('main-menu');
-                if (menu) {
-                    menu.classList.remove('hidden');
-                    menu.classList.add('flex');
-                }
-            }
-        }
-
-        function initEitaa() {
-            try {
-                const eitaa = window.Eitaa;
-                const wa = (eitaa && eitaa.WebApp) ? eitaa.WebApp : null;
-                if (wa) {
-                    if (typeof wa.ready === 'function') wa.ready();
-                    if (typeof wa.expand === 'function') wa.expand();
-                    if (typeof wa.onEvent === 'function') {
-                        wa.onEvent('backButtonClicked', () => {
-                            const current = getCurrentScreen();
-                            if (current === 'mainMenu' || current === 'splash') {
-                                if (typeof wa.close === 'function') wa.close();
-                            } else {
-                                playSound('click');
-                                history.back();
-                            }
-                        });
-                    }
-                }
-            } catch (e) {
-                console.warn("Eitaa SDK init error", e);
-            }
-        }
-
-        async function preloadAssets() {
-            const images = [
-                '/card_back_classic.png', '/card_back_modern.png', '/card_back_abstract.png',
-                '/bg_pattern_dots.png', '/bg_pattern_waves.png', '/splash_logo.png'
-            ];
-            for (let i = 1; i <= 15; i++) images.push(`/card_${i}.png`);
-            
-            const promises = images.map(src => {
-                return new Promise((resolve) => {
-                    const img = new Image();
-                    img.src = src;
-                    img.onload = resolve;
-                    img.onerror = () => {
-                        console.warn('Failed to preload:', src);
-                        resolve();
-                    };
-                });
-            });
-            await Promise.all(promises);
-        }
-
-        function initLoading() {
-            const bar = document.getElementById('loading-bar');
-            const splash = document.getElementById('splash-screen');
-            if (!bar || !splash) return;
-
-            // Ensure loading animation runs for exactly 5 seconds (5000 ms)
-            const totalDuration = 5000;
-            const fps = 60;
-            const steps = Math.max(10, Math.floor((totalDuration / 1000) * fps));
-            let step = 0;
-
-            const interval = setInterval(() => {
-                step++;
-                const progress = Math.min(100, Math.round((step / steps) * 100));
-                bar.style.width = `${progress}%`;
-
-                if (step >= steps) {
-                    clearInterval(interval);
-                    // Hide blocker and splash
-                    const blocker = document.getElementById('page-blocker');
-                    if (blocker) blocker.classList.add('hidden');
-                    
-                    splash.classList.add('opacity-0');
-                    splash.style.pointerEvents = 'none';
-                    setTimeout(() => {
-                        splash.classList.add('hidden');
-                    }, 500);
-                }
-            }, Math.max(8, Math.floor(totalDuration / steps)));
-        }
-
-        function initBackground() {
-            const container = document.getElementById('bg-canvas-container');
-            if (!container) return;
-
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
-            renderer.setPixelRatio(1);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            container.appendChild(renderer.domElement);
-
-            const createParticleLayer = (count, size, color, spread, speedMult) => {
-                const cappedCount = Math.min(count, 1200);
-                const geo = new THREE.BufferGeometry();
-                const pos = new Float32Array(cappedCount * 3);
-                const velocities = new Float32Array(cappedCount);
-                const colors = new Float32Array(cappedCount * 3);
-                const baseColor = new THREE.Color(color);
-
-                for (let i = 0; i < cappedCount; i++) {
-                    const i3 = i * 3;
-                    pos[i3] = (Math.random() - 0.5) * spread;
-                    pos[i3 + 1] = (Math.random() - 0.5) * spread;
-                    pos[i3 + 2] = (Math.random() - 0.5) * spread;
-                    velocities[i] = (Math.random() + 0.5) * speedMult;
-                    colors[i3] = baseColor.r + (Math.random() - 0.5) * 0.2;
-                    colors[i3 + 1] = baseColor.g + (Math.random() - 0.5) * 0.2;
-                    colors[i3 + 2] = baseColor.b + (Math.random() - 0.5) * 0.2;
-                }
-
-                geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-                geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-                const mat = new THREE.PointsMaterial({
-                    size: size,
-                    vertexColors: true,
-                    transparent: true,
-                    opacity: 0.85,
-                    blending: THREE.AdditiveBlending,
-                    depthWrite: false
-                });
-
-                const points = new THREE.Points(geo, mat);
-                points.userData = { velocities, spread, count: cappedCount };
-                return points;
-            };
-
-            const layer1 = createParticleLayer(1200, 0.012, 0x3b82f6, 15, 0.0025);
-            const layer2 = createParticleLayer(800, 0.02, 0x10b981, 20, 0.0045);
-            const layer3 = createParticleLayer(60, 0.1, 0xffffff, 12, 0.01);
-
-            scene.add(layer1, layer2, layer3);
-            camera.position.z = 8;
-
-            let targetX = 0, targetY = 0;
-            window.addEventListener('pointermove', (e) => {
-                targetX = (e.clientX - window.innerWidth / 2) / 450;
-                targetY = (e.clientY - window.innerHeight / 2) / 450;
-            });
-
-            let running = true;
-            let lastTime = 0;
-            function animate(time) {
-                if (!running) return;
-                requestAnimationFrame(animate);
-
-                if (document.hidden || !settingsState.animatedBg || container.style.display === 'none') {
-                    if (time - lastTime < 250) return;
-                }
-                lastTime = time;
-
-                const t = time * 0.00025;
-                [layer1, layer2, layer3].forEach((layer, idx) => {
-                    layer.rotation.y += 0.0006 * (idx + 1);
-                    layer.rotation.z += 0.0003 * (idx + 1);
-                    const attr = layer.geometry.attributes.position;
-                    const pos = attr.array;
-                    const count = layer.userData.count;
-                    const step = count > 800 ? 4 : 1;
-                    for (let i = 0; i < count * 3; i += 3 * step) {
-                        pos[i + 1] += Math.sin(t + i) * 0.0008;
-                    }
-                    attr.needsUpdate = true;
-                });
-
-                camera.position.x += (targetX - camera.position.x) * 0.05;
-                camera.position.y += (-targetY - camera.position.y) * 0.05;
-                camera.lookAt(scene.position);
-                renderer.render(scene, camera);
-            }
-
-            const updateRunningState = () => {
-                const shouldRun = settingsState.animatedBg && container.style.display !== 'none' && !document.hidden;
-                if (shouldRun && !running) {
-                    running = true;
-                    requestAnimationFrame(animate);
-                } else if (!shouldRun && running) {
-                    running = false;
-                }
-            };
-
-            document.addEventListener('visibilitychange', updateRunningState);
-            setInterval(updateRunningState, 500);
-
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-
-            if (settingsState.animatedBg) {
-                running = true;
-                requestAnimationFrame(animate);
-            } else {
-                running = false;
-            }
-        }
-
-        function setupEventListeners() {
-            document.getElementById('btn-start').onclick = () => {
-                playSound('click');
-                showScreen('difficulty');
-            };
-
-            document.getElementById('btn-settings').onclick = () => {
-                playSound('click');
-                showScreen('settings');
-            };
-
-            document.getElementById('btn-back-menu').onclick = () => {
-                playSound('click');
-                showScreen('mainMenu');
-            };
-
-            document.getElementById('btn-save-settings').onclick = () => {
-                playSound('click');
-                showScreen('mainMenu');
-            };
-
-            document.getElementById('btn-quit').onclick = () => {
-                playSound('click');
-                showScreen('mainMenu');
-            };
-
-            document.querySelectorAll('.btn-diff').forEach(btn => {
-                btn.onclick = () => {
-                    playSound('click');
-                    showScreen('game', true); 
-                    setupGame(btn.dataset.difficulty);
-                };
-            });
-
-            document.getElementById('btn-win-close').onclick = () => {
-                playSound('click');
-                showScreen('mainMenu');
-            };
-
-            document.querySelectorAll('.setting-opt-bg').forEach(opt => {
-                opt.onclick = () => {
-                    saveSettings({ bg: opt.dataset.bg });
-                    playSound('click');
-                };
-            });
-
-            document.querySelectorAll('.setting-opt-card').forEach(opt => {
-                opt.onclick = () => {
-                    saveSettings({ cardBack: opt.dataset.card });
-                    playSound('click');
-                };
-            });
-
-            document.getElementById('toggle-animated-bg').onclick = () => {
-                playSound('click');
-                saveSettings({ animatedBg: !settingsState.animatedBg });
-            };
-
-            // Simplify footer link handling: ensure the anchor simply calls the global app.openArvin() fallback handler.
-            // The anchor element itself now has an onclick that calls app.openArvin(), so no complex listener is required here.
-            // Keep this minimal: if needed elsewhere, call window.app.openArvin() directly.
-        }
-
-        // Boot
-        if (document.readyState === 'loading') {
-            window.addEventListener('DOMContentLoaded', startApp);
-        } else {
-            startApp();
-        }
+    }
     </script>
+    <script type="module" src="main.js"></script>
 </body>
 </html>
