@@ -6,22 +6,11 @@
     <title>آموزش زبان برتر</title>
     <script src="https://developer.eitaa.com/eitaa-web-app.js"></script>
     <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      try {
-        if (!(window.Eitaa && Eitaa.WebApp)) return;
+      window.Eitaa.WebApp.ready();
+      window.Eitaa.WebApp.expand();
 
-        Eitaa.WebApp.ready();
-
-        if (Eitaa.WebApp.setHeaderColor)
-          Eitaa.WebApp.setHeaderColor('#1a1a2e');
-
-        if (Eitaa.WebApp.enableClosingConfirmation)
-          Eitaa.WebApp.enableClosingConfirmation();
-
-        window.Eitaa.WebApp.disableVerticalSwipes();
-            }
-          } catch (e) {}
-        };
+      window.Eitaa.WebApp.disableVerticalSwipes();
+    </script>
         document.addEventListener('click', enterFullscreen, { once: true });
       } catch (e) {}
     });
