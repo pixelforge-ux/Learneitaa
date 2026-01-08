@@ -368,7 +368,7 @@ class App {
     }
 
     openArvin() {
-        const url = 'https://eitaa.com/Arvinweb';
+        const url = 'https://eitaa.com/Arvinwebs';
         try {
             if (window.Eitaa && Eitaa.WebApp && typeof Eitaa.WebApp.openEitaaLink === 'function') {
                 Eitaa.WebApp.openEitaaLink(url);
